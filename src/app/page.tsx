@@ -51,10 +51,10 @@ export default function LiveControlTower() {
     { name: 'Khaki Fabric', stock: 100 }
   ]);
 
-  // Mobile Floor inputs
-  const [mobileFabricUsed, setMobileFabricUsed] = useState(0);
-  const [mobilePatternsCut, setMobilePatternsCut] = useState(0);
-  const [selectedTailor, setSelectedTailor] = useState('');
+  // Mobile Floor inputs (Managed as standard states for high-velocity counters)
+  const [mobileFabricUsed, setMobileFabricUsed] = useState<number>(0);
+  const [mobilePatternsCut, setMobilePatternsCut] = useState<number>(0);
+  const [selectedTailor, setSelectedTailor] = useState<string>('');
 
   // Form Field Interactive States
   const [formData, setFormData] = useState({
@@ -290,7 +290,7 @@ export default function LiveControlTower() {
                 <div className="grid grid-cols-2 gap-2">
                   <select
                     value={formData.garmentType}
-                    onChange={(e) => setFormData({ ...formData, garmentType: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, garmentType: e.target.value as any })}
                     className="p-2.5 rounded bg-slate-800 border border-slate-700 text-slate-100 text-sm focus:outline-none"
                   >
                     <option value="Suit">Suit</option>
@@ -389,7 +389,7 @@ export default function LiveControlTower() {
                     <div key={stage} className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 w-72 flex flex-col h-[82vh]">
                       <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-2">
                         <span className="text-[10px] font-black text-slate-400 tracking-widest uppercase">
-                          {idx + 1}. {stage.replace(/_/g, ' ')}
+                          {idx + 1}. {stage}
                         </span>
                         <span className="bg-emerald-500/10 text-emerald-400 text-xs px-2 py-0.5 rounded-full font-bold">
                           {stageOrders.length}
@@ -508,32 +508,58 @@ export default function LiveControlTower() {
                     <h3 className="text-lg font-black text-white">{selectedOrderForMobile.customerName}</h3>
                   </div>
 
-                  {/* Cutting Metrics */}
+                  {/* High-Velocity Touch Counter Panels */}
                   <div className="bg-slate-850 p-4 rounded-xl border border-slate-800 space-y-4">
                     <h4 className="text-xs font-black text-slate-300 tracking-wider uppercase">✂️ Floor Action: Cutting Metrics</h4>
                     <div className="grid grid-cols-2 gap-4">
+                      
+                      {/* Fabric Meter Float Incrementor */}
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-400 mb-1">Meters Used (m)</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={mobileFabricUsed}
-                          onChange={(e) => setMobileFabricUsed(Number(e.target.value))}
-                          className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-100 text-sm focus:outline-none"
-                        />
+                        <label className="block text-[10px] font-bold text-slate-400 mb-1.5">Meters Used (m)</label>
+                        <div className="flex items-center bg-slate-900 border border-slate-700 rounded overflow-hidden">
+                          <button 
+                            type="button"
+                            onClick={() => setMobileFabricUsed(p => Math.max(0, parseFloat((p - 0.1).toFixed(1))))}
+                            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-extrabold active:scale-95 transition-all select-none"
+                          >
+                            -
+                          </button>
+                          <span className="flex-1 text-center text-xs font-mono text-slate-100 font-bold">{mobileFabricUsed}m</span>
+                          <button 
+                            type="button"
+                            onClick={() => setMobileFabricUsed(p => parseFloat((p + 0.1).toFixed(1)))}
+                            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-extrabold active:scale-95 transition-all select-none"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
+
+                      {/* Pattern Pieces Integer Incrementor */}
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-400 mb-1">Pattern Pieces Cut</label>
-                        <input
-                          type="number"
-                          value={mobilePatternsCut}
-                          onChange={(e) => setMobilePatternsCut(Number(e.target.value))}
-                          className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-100 text-sm focus:outline-none"
-                        />
+                        <label className="block text-[10px] font-bold text-slate-400 mb-1.5">Pattern Pieces Cut</label>
+                        <div className="flex items-center bg-slate-900 border border-slate-700 rounded overflow-hidden">
+                          <button 
+                            type="button"
+                            onClick={() => setMobilePatternsCut(p => Math.max(0, p - 1))}
+                            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-extrabold active:scale-95 transition-all select-none"
+                          >
+                            -
+                          </button>
+                          <span className="flex-1 text-center text-xs font-mono text-slate-100 font-bold">{mobilePatternsCut} pcs</span>
+                          <button 
+                            type="button"
+                            onClick={() => setMobilePatternsCut(p => p + 1)}
+                            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-extrabold active:scale-95 transition-all select-none"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
+
                     </div>
-                    <button onClick={submitMobileMetrics} className="w-full bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold py-2 rounded transition">
-                      Submit & Move to CUTTING AREA
+                    <button onClick={submitMobileMetrics} className="w-full bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold py-2.5 rounded transition uppercase tracking-wider">
+                      Submit & Move to Cutting
                     </button>
                   </div>
 
@@ -555,7 +581,7 @@ export default function LiveControlTower() {
                       </div>
                     </div>
                     <button onClick={submitTailorAssignment} disabled={!selectedTailor} className="w-full bg-emerald-500 disabled:opacity-50 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold py-2.5 rounded transition uppercase tracking-wider">
-                      Confirm Tailor & Set to ASSIGNED
+                      Confirm Tailor & Set to Assigned
                     </button>
                   </div>
                 </div>
