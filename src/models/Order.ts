@@ -1,122 +1,47 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, model, models } from 'mongoose';
 
 export interface IOrder extends Document {
-  orderId: string; // e.g., "ORD-1001"
+  orderId: string;
   customerName: string;
-  customerPhone?: string;
-  garmentType: string; 
+  customerPhone: string;
+  garmentType: 'Suit' | 'Dress' | 'Shirt' | 'Native';
+  fabricSelection: string; // References Inventory Item ID/Name
+  fabricQuantityRequired: number; // Meters needed for this custom build
   measurements: {
-    neck?: number;
-    chest?: number;
-    waist?: number;
-    [key: string]: number | undefined;
+    neck: number;
+    chest: number;
+    waist: number;
   };
-  fabricSelection: string;
-  fabricMetersUsed?: number;
-  patternPiecesCut?: number;
-  status: 
-    | 'INTAKE' 
-    | 'READY_FOR_PRODUCTION' 
-    | 'CUTTING_AREA' 
-    | 'ASSIGNMENT' 
-    | 'PRODUCTION_SEWING' 
-    | 'CONTROL_TOWER_QC' 
-    | 'DISPATCHED';
-  assignedTailor?: string;
-  price: number;
-  amountPaid: number;
-  paymentStatus: 'Unpaid' | 'Partial' | 'Paid';
+  priceTotal: number;
+  depositPaid: number;
+  balanceRemaining: number;
   dueDate: Date;
-  notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  status: 'Intake' | 'Ready' | 'Cutting' | 'Assignment' | 'Sewing' | 'QC' | 'Dispatched';
+  assignedTailor: string | null;
 }
 
-const OrderSchema: Schema<IOrder> = new Schema(
-  {
-    orderId: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-    },
-    customerName: {
-      type: String,
-      required: [true, 'Customer name is required'],
-      trim: true,
-    },
-    customerPhone: {
-      type: String,
-      trim: true,
-    },
-    garmentType: {
-      type: String,
-      required: [true, 'Garment type is required'],
-      trim: true,
-    },
-    measurements: {
-      neck: Number,
-      chest: Number,
-      waist: Number,
-    },
-    fabricSelection: {
-      type: String,
-      required: [true, 'Fabric selection is required'],
-    },
-    fabricMetersUsed: {
-      type: Number,
-      default: 0,
-    },
-    patternPiecesCut: {
-      type: Number,
-      default: 0,
-    },
-    status: {
-      type: String,
-      enum: [
-        'INTAKE',
-        'READY_FOR_PRODUCTION',
-        'CUTTING_AREA',
-        'ASSIGNMENT',
-        'PRODUCTION_SEWING',
-        'CONTROL_TOWER_QC',
-        'DISPATCHED',
-      ],
-      default: 'INTAKE',
-    },
-    assignedTailor: {
-      type: String,
-      default: null,
-    },
-    price: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    amountPaid: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    paymentStatus: {
-      type: String,
-      enum: ['Unpaid', 'Partial', 'Paid'],
-      default: 'Unpaid',
-    },
-    dueDate: {
-      type: Date,
-      required: true,
-    },
-    notes: {
-      type: String,
-      trim: true,
-    },
+const OrderSchema = new Schema<IOrder>({
+  orderId: { type: String, unique: true },
+  customerName: { type: String, required: true },
+  customerPhone: { type: String, required: true },
+  garmentType: { type: String, enum: ['Suit', 'Dress', 'Shirt', 'Native'], required: true },
+  fabricSelection: { type: String, required: true },
+  fabricQuantityRequired: { type: Number, required: true, default: 0 },
+  measurements: {
+    neck: { type: Number, required: true, default: 0 },
+    chest: { type: Number, required: true, default: 0 },
+    waist: { type: Number, required: true, default: 0 },
   },
-  {
-    timestamps: true,
-  }
-);
+  priceTotal: { type: Number, required: true },
+  depositPaid: { type: Number, required: true, default: 0 },
+  balanceRemaining: { type: Number, required: true },
+  dueDate: { type: Date, required: true },
+  status: { 
+    type: String, 
+    enum: ['Intake', 'Ready', 'Cutting', 'Assignment', 'Sewing', 'QC', 'Dispatched'],
+    default: 'Intake' 
+  },
+  assignedTailor: { type: String, default: null }
+}, { timestamps: true });
 
-const Order: Model<IOrder> = mongoose.models.Order || mongoose.model<IOrder>('Order', OrderSchema);
-
-export default Order;
+export default models.Order || model<IOrder>('Order', OrderSchema);
