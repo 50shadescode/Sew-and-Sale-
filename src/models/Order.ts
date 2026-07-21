@@ -4,9 +4,10 @@ export interface IOrder extends Document {
   orderId: string;
   customerName: string;
   customerPhone: string;
+  salesRep?: string; // 👈 Track sales team member (Faith / Phylis)
   garmentType: 'Suit' | 'Dress' | 'Shirt' | 'Native';
-  fabricSelection: string; // References Inventory Item ID/Name
-  fabricQuantityRequired: number; // Meters needed for this custom build
+  fabricSelection: string; // References Inventory Item Name
+  fabricQuantityRequired: number; // Meters needed for custom build
   measurements: {
     neck: number;
     chest: number;
@@ -17,31 +18,43 @@ export interface IOrder extends Document {
   balanceRemaining: number;
   dueDate: Date;
   status: 'Intake' | 'Ready' | 'Cutting' | 'Assignment' | 'Sewing' | 'QC' | 'Dispatched';
-  assignedTailor: string | null;
+  fabricMetersUsed?: number; // 👈 Logged by Cutting (Joseph)
+  patternPiecesCut?: number; // 👈 Logged by Cutting (Joseph)
+  assignedTailor?: string | null; // 👈 Assigned tailor (Winnie, Fridah, Sammy, Leah)
 }
 
-const OrderSchema = new Schema<IOrder>({
-  orderId: { type: String, unique: true },
-  customerName: { type: String, required: true },
-  customerPhone: { type: String, required: true },
-  garmentType: { type: String, enum: ['Suit', 'Dress', 'Shirt', 'Native'], required: true },
-  fabricSelection: { type: String, required: true },
-  fabricQuantityRequired: { type: Number, required: true, default: 0 },
-  measurements: {
-    neck: { type: Number, required: true, default: 0 },
-    chest: { type: Number, required: true, default: 0 },
-    waist: { type: Number, required: true, default: 0 },
+const OrderSchema = new Schema<IOrder>(
+  {
+    orderId: { type: String, unique: true },
+    customerName: { type: String, required: true },
+    customerPhone: { type: String, required: true },
+    salesRep: { type: String, default: 'Faith' },
+    garmentType: { 
+      type: String, 
+      enum: ['Suit', 'Dress', 'Shirt', 'Native'], 
+      required: true 
+    },
+    fabricSelection: { type: String, required: true },
+    fabricQuantityRequired: { type: Number, required: true, default: 0 },
+    measurements: {
+      neck: { type: Number, required: true, default: 0 },
+      chest: { type: Number, required: true, default: 0 },
+      waist: { type: Number, required: true, default: 0 },
+    },
+    priceTotal: { type: Number, required: true },
+    depositPaid: { type: Number, required: true, default: 0 },
+    balanceRemaining: { type: Number, required: true },
+    dueDate: { type: Date, required: true },
+    status: { 
+      type: String, 
+      enum: ['Intake', 'Ready', 'Cutting', 'Assignment', 'Sewing', 'QC', 'Dispatched'],
+      default: 'Intake' 
+    },
+    fabricMetersUsed: { type: Number, default: 0 },
+    patternPiecesCut: { type: Number, default: 0 },
+    assignedTailor: { type: String, default: null },
   },
-  priceTotal: { type: Number, required: true },
-  depositPaid: { type: Number, required: true, default: 0 },
-  balanceRemaining: { type: Number, required: true },
-  dueDate: { type: Date, required: true },
-  status: { 
-    type: String, 
-    enum: ['Intake', 'Ready', 'Cutting', 'Assignment', 'Sewing', 'QC', 'Dispatched'],
-    default: 'Intake' 
-  },
-  assignedTailor: { type: String, default: null }
-}, { timestamps: true });
+  { timestamps: true }
+);
 
 export default models.Order || model<IOrder>('Order', OrderSchema);
