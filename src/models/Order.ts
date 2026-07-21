@@ -21,6 +21,7 @@ export interface IOrder extends Document {
   fabricMetersUsed?: number; // 👈 Logged by Cutting (Joseph)
   patternPiecesCut?: number; // 👈 Logged by Cutting (Joseph)
   assignedTailor?: string | null; // 👈 Assigned tailor (Winnie, Fridah, Sammy, Leah)
+  qcPassedBy?: string | null; // 👈 Approved inspector (Simon / Safari)
 }
 
 const OrderSchema = new Schema<IOrder>(
@@ -53,8 +54,8 @@ const OrderSchema = new Schema<IOrder>(
     fabricMetersUsed: { type: Number, default: 0 },
     patternPiecesCut: { type: Number, default: 0 },
     assignedTailor: { type: String, default: null },
+    qcPassedBy: { type: String, default: null }, // 👈 Added Mongoose field
   },
   { timestamps: true }
 );
-
 export default models.Order || model<IOrder>('Order', OrderSchema);

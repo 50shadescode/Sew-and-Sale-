@@ -24,6 +24,7 @@ interface OrderType {
   fabricMetersUsed?: number;
   patternPiecesCut?: number;
   assignedTailor?: string | null;
+  qcPassedBy?: string | null; // 👈 Inspector tracking (Simon / Safari)
 }
 
 interface InventoryType {
@@ -69,6 +70,7 @@ export default function LiveControlTower() {
   const [mobileFabricUsed, setMobileFabricUsed] = useState<number>(0);
   const [mobilePatternsCut, setMobilePatternsCut] = useState<number>(0);
   const [selectedTailor, setSelectedTailor] = useState<string>('');
+  const [selectedFinisher, setSelectedFinisher] = useState<string>(FINISHERS[0]);
 
   // Form Field Interactive States
   const [formData, setFormData] = useState({
@@ -85,6 +87,12 @@ export default function LiveControlTower() {
     depositPaid: '',
     dueDate: '',
   });
+
+  // 📊 Dynamic Financial Accounting & Warehouse Analytics Bar
+  const totalRevenue = orders.reduce((acc, curr) => acc + (curr.priceTotal || 0), 0);
+  const totalDeposits = orders.reduce((acc, curr) => acc + (curr.depositPaid || 0), 0);
+  const totalOutstanding = orders.reduce((acc, curr) => acc + (curr.balanceRemaining || 0), 0);
+  const lowStockAlerts = fullInventory.filter(item => item.stockLevel <= item.minimumLevel);
 
   // Auto-calculated Financial Accounting Engine
   const balanceRemaining = Math.max(
@@ -214,7 +222,7 @@ export default function LiveControlTower() {
     const nextStatus = STAGES[currentIndex + 1];
 
     if (nextStatus === 'Dispatched') {
-      alert(`💬 STAGE 7: DISPATCHED\nInvoice generated & simulated M-Pesa STK Push initiated for KES ${order.priceTotal} to ${order.customerPhone || 'Customer'}`);
+      alert(`💬 STAGE 7: DISPATCHED\nInvoice generated & simulated M-Pesa STK Push initiated for KES ${order.priceTotal} to${order.customerPhone || 'Customer'}`);
     }
 
     try {
@@ -231,6 +239,30 @@ export default function LiveControlTower() {
       }
     } catch (err) {
       console.error('Error updating status:', err);
+    }
+  };
+
+  // 🔍 Finishing Dept Action: Pass QC Inspection (Simon & Safari)
+  const passQCOrder = async (orderId: string, finisherName: string) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          qcPassedBy: finisherName,
+          status: 'Dispatched',
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        fetchOrders();
+        setSelectedOrderForMobile(null);
+        alert(`✅ QC Inspection PASSED by ${finisherName}! Order moved to Dispatched.`);
+      } else {
+        alert(`Error passing QC: ${json.error}`);
+      }
+    } catch (err) {
+      console.error('Error passing QC:', err);
     }
   };
 
@@ -311,9 +343,32 @@ export default function LiveControlTower() {
         </div>
       </nav>
 
-      <div className="p-6">
+      <div className="p-6 space-y-6">
+        {/* 📊 Top Revenue & Inventory Analytics Summary Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Gross Revenue Pipeline</span>
+            <span className="text-xl font-black text-white font-mono">KES {totalRevenue.toLocaleString()}</span>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg">
+            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest block mb-1">Collected Deposits</span>
+            <span className="text-xl font-black text-emerald-400 font-mono">KES {totalDeposits.toLocaleString()}</span>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg">
+            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest block mb-1">Outstanding Balances</span>
+            <span className="text-xl font-black text-amber-400 font-mono">KES {totalOutstanding.toLocaleString()}</span>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg">
+            <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest block mb-1">Low-Stock Alerts</span>
+            <div className="flex items-center space-x-2">
+              <span className="text-xl font-black text-rose-400 font-mono">{lowStockAlerts.length} Items</span>
+              {lowStockAlerts.length > 0 && <span className="animate-ping w-2 h-2 rounded-full bg-rose-500 inline-block"></span>}
+            </div>
+          </div>
+        </div>
+
         {errorMsg && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl text-xs font-semibold shadow-sm">
+          <div className="p-4 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl text-xs font-semibold shadow-sm">
              Stock Interceptor Rule Alert: {errorMsg}
           </div>
         )}
@@ -494,7 +549,11 @@ export default function LiveControlTower() {
                                 {order.salesRep && <div>👩‍💼 Sales: {order.salesRep}</div>}
                                 {stage === 'Cutting' && <div>✂️ Cutting Lead: {CUTTERS[0]}</div>}
                                 {order.assignedTailor && <div>🧵 Tailor: {order.assignedTailor}</div>}
-                                {stage === 'QC' && <div>🔍 Finishing Dept: {FINISHERS.join(', ')}</div>}
+                                {order.qcPassedBy ? (
+                                  <div className="text-emerald-400 font-bold">🔍 QC Passed By: {order.qcPassedBy}</div>
+                                ) : (
+                                  stage === 'QC' && <div>🔍 Finishing Dept: {FINISHERS.join(', ')}</div>
+                                )}
                               </div>
 
                               <div className="mt-3 pt-2.5 border-t border-slate-800 flex justify-between items-center">
@@ -502,14 +561,29 @@ export default function LiveControlTower() {
                                   <span className="text-xs font-bold text-slate-100">KES {order.priceTotal?.toLocaleString()}</span>
                                   <span className="text-[9px] text-slate-500">Bal: KES {order.balanceRemaining?.toLocaleString()}</span>
                                 </div>
-                                {stage !== 'Dispatched' && (
+                                {stage === 'QC' ? (
+                                  <div className="flex flex-col items-end space-y-1">
+                                    <button
+                                      onClick={() => passQCOrder(order._id, FINISHERS[0])}
+                                      className="text-[9px] font-bold text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded"
+                                    >
+                                      Pass QC ({FINISHERS[0]})
+                                    </button>
+                                    <button
+                                      onClick={() => passQCOrder(order._id, FINISHERS[1])}
+                                      className="text-[9px] font-bold text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded"
+                                    >
+                                      Pass QC ({FINISHERS[1]})
+                                    </button>
+                                  </div>
+                                ) : stage !== 'Dispatched' ? (
                                   <button
                                     onClick={() => advanceOrder(order)}
                                     className="text-[10px] font-bold text-emerald-400 hover:text-white border border-emerald-500/30 hover:bg-emerald-500/20 px-2 py-1 rounded transition"
                                   >
                                     Move Next →
                                   </button>
-                                )}
+                                ) : null}
                               </div>
                             </div>
                           ))}
@@ -704,6 +778,31 @@ export default function LiveControlTower() {
                     </div>
                     <button onClick={submitTailorAssignment} disabled={!selectedTailor} className="w-full bg-emerald-500 disabled:opacity-50 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold py-2.5 rounded transition uppercase tracking-wider">
                       Confirm Tailor & Set to Assigned
+                    </button>
+                  </div>
+
+                  {/* Finishing Dept QC Inspection Action (Simon / Safari) */}
+                  <div className="bg-slate-850 p-4 rounded-xl border border-slate-800 space-y-4">
+                    <h4 className="text-xs font-black text-slate-300 tracking-wider uppercase">🔍 Finishing Dept QC Inspection</h4>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1.5">Select Inspector</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {FINISHERS.map((finisher) => (
+                          <button
+                            key={finisher}
+                            onClick={() => setSelectedFinisher(finisher)}
+                            className={`p-2 rounded text-xs font-bold border transition ${selectedFinisher === finisher ? 'bg-emerald-500 border-emerald-500 text-slate-950' : 'bg-slate-900 border-slate-700 text-slate-300'}`}
+                          >
+                            {finisher}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => passQCOrder(selectedOrderForMobile._id, selectedFinisher)}
+                      className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold py-2.5 rounded transition uppercase tracking-wider"
+                    >
+                      Pass QC & Approve Dispatch ({selectedFinisher})
                     </button>
                   </div>
                 </div>
