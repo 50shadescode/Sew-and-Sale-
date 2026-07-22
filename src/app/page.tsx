@@ -60,10 +60,10 @@ export default function LiveControlTower() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // 🧙‍♂️ 5-Step Intake Form State
+  // Intake Form State Navigation
   const [intakeStep, setIntakeStep] = useState<number>(1);
 
-  // 📱 Mobile View Quick Department Filter State
+  // Mobile View Quick Department Filter State
   const [mobileDepartmentFilter, setMobileDepartmentFilter] = useState<string>('ALL');
 
   // Dynamic Stock & Inventory States
@@ -95,18 +95,18 @@ export default function LiveControlTower() {
     dueDate: '',
   });
 
-  // 📊 Dynamic Financial Accounting & Warehouse Analytics Bar
+  // Dynamic Financial Accounting Analytics
   const totalRevenue = orders.reduce((acc, curr) => acc + (curr.priceTotal || 0), 0);
   const totalDeposits = orders.reduce((acc, curr) => acc + (curr.depositPaid || 0), 0);
   const totalOutstanding = orders.reduce((acc, curr) => acc + (curr.balanceRemaining || 0), 0);
   const lowStockAlerts = fullInventory.filter(item => item.stockLevel <= item.minimumLevel);
 
-  // Operational Questions Engine Data
+  // Operational Question Engine Metrics
   const todayStr = new Date().toISOString().split('T')[0];
   const dueTodayOrders = orders.filter(o => o.dueDate && o.dueDate.startsWith(todayStr));
   const awaitingPickup = orders.filter(o => o.status === 'QC');
 
-  // Auto-calculated Balance
+  // Auto-calculated Financial Balance
   const balanceRemaining = Math.max(
     0, 
     (Number(formData.priceTotal) || 0) - (Number(formData.depositPaid) || 0)
@@ -146,7 +146,7 @@ export default function LiveControlTower() {
     fetchInventory();
   }, []);
 
-  // 💡 Smart Defaults Engine for Garment Selection
+  // Smart Defaults Engine for Garment Selection
   const handleGarmentChange = (type: 'Suit' | 'Dress' | 'Shirt' | 'Native') => {
     let defaultMeters = '2.5';
     let defaultPrice = '15000';
@@ -219,7 +219,7 @@ export default function LiveControlTower() {
       });
       const json = await res.json();
       if (!json.success) {
-        setErrorMsg(json.message || "Auto-Stock validation rejected intake entry.");
+        setErrorMsg(json.message || "Inventory validation rejected entry.");
       } else {
         fetchOrders();
         fetchInventory();
@@ -241,7 +241,7 @@ export default function LiveControlTower() {
       }
     } catch (err) {
       console.error('Error creating order:', err);
-      setErrorMsg("Network timeout registering operational order parameters.");
+      setErrorMsg("Network error registering order parameters.");
     } finally {
       setLoading(false);
     }
@@ -254,7 +254,7 @@ export default function LiveControlTower() {
     const nextStatus = STAGES[currentIndex + 1];
 
     if (nextStatus === 'Dispatched') {
-      alert(`💬 STAGE 7: DISPATCHED\nInvoice generated & simulated M-Pesa STK Push initiated for KES ${order.priceTotal} to ${order.customerPhone || 'Customer'}`);
+      alert(`STAGE 7: DISPATCHED\nInvoice generated and payment notification initiated for KES ${order.priceTotal} to ${order.customerPhone || 'Customer'}`);
     }
 
     try {
@@ -265,7 +265,7 @@ export default function LiveControlTower() {
       });
       const json = await res.json();
       if (!json.success) {
-        alert(`❌ Operational Hold: ${json.error || 'Failed to update stage.'}`);
+        alert(`System Hold: ${json.error || 'Failed to update order stage.'}`);
       } else {
         fetchOrders();
       }
@@ -288,12 +288,12 @@ export default function LiveControlTower() {
       if (json.success) {
         fetchOrders();
         setSelectedOrderForMobile(null);
-        alert(`✅ QC Inspection PASSED by ${finisherName}! Order moved to Dispatched.`);
+        alert(`QC Inspection passed by ${finisherName}. Order moved to Dispatched.`);
       } else {
-        alert(`Error passing QC: ${json.error}`);
+        alert(`Error completing QC: ${json.error}`);
       }
     } catch (err) {
-      console.error('Error passing QC:', err);
+      console.error('Error completing QC:', err);
     }
   };
 
@@ -312,11 +312,11 @@ export default function LiveControlTower() {
       });
       const json = await res.json();
       if (!json.success) {
-        alert(` Error: ${json.error}`);
+        alert(`Error: ${json.error}`);
       } else {
         fetchOrders();
         setSelectedOrderForMobile(null);
-        alert(`Cutting metrics logged to Database by ${CUTTERS[0]}!`);
+        alert(`Cutting metrics registered by ${CUTTERS[0]}.`);
       }
     } catch (err) {
       console.error('Error logging metrics:', err);
@@ -337,12 +337,12 @@ export default function LiveControlTower() {
       });
       const json = await res.json();
       if (!json.success) {
-        alert(` Error: ${json.error}`);
+        alert(`Error: ${json.error}`);
       } else {
         fetchOrders();
         setSelectedOrderForMobile(null);
         setSelectedTailor('');
-        alert(`Assigned to Tailor ${selectedTailor}!`);
+        alert(`Assigned to Tailor ${selectedTailor}.`);
       }
     } catch (err) {
       console.error('Error assigning tailor:', err);
@@ -361,7 +361,7 @@ export default function LiveControlTower() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-blue-500 selection:text-white pb-12">
-      {/* 🧭 Human-Centric Main Navigation Header */}
+      {/* Navigation Header */}
       <nav className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex flex-col md:flex-row justify-between items-center sticky top-0 z-50 shadow-lg gap-4">
         <div className="flex items-center space-x-4">
           <div className="relative w-12 h-12 overflow-hidden rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center shrink-0 shadow-inner">
@@ -385,7 +385,7 @@ export default function LiveControlTower() {
           </div>
         </div>
 
-        {/* Intuitive Navigation Bar Tabs */}
+        {/* Navigation Tabs */}
         <div className="flex bg-slate-950 p-1.5 rounded-xl border border-slate-800 shadow-inner text-sm">
           <button
             onClick={() => { setActiveTab('dashboard'); setView('desktop'); }}
@@ -403,7 +403,7 @@ export default function LiveControlTower() {
             onClick={() => { setActiveTab('workshop'); setView('mobile'); }}
             className={`px-4 py-2 rounded-lg font-bold transition-all duration-200 ${view === 'mobile' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
           >
-            📱 Workshop Floor
+            Workshop Floor
           </button>
           <button
             onClick={() => { setActiveTab('inventory'); setView('desktop'); }}
@@ -416,59 +416,47 @@ export default function LiveControlTower() {
 
       <div className="p-6 space-y-8 max-w-[1600px] mx-auto">
 
-        {/* 🌅 Morning Executive Briefing Banner (Answers Key Questions) */}
+        {/* Executive Morning Briefing Banner */}
         {view === 'desktop' && (
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
             <div className="flex justify-between items-start flex-wrap gap-2 border-b border-slate-800 pb-3">
               <div>
                 <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest block mb-0.5">DAILY BRIEFING</span>
-                <h2 className="text-2xl font-black text-slate-100">Good Morning, {formData.salesRep} 👋</h2>
+                <h2 className="text-2xl font-black text-slate-100">Good Morning, Leah</h2>
               </div>
               <span className="text-xs font-mono font-bold text-slate-400 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
                 {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
             </div>
 
-            {/* Answer Engine Badges */}
+            {/* Answer Engine KPI Modules */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center gap-3">
-                <span className="text-2xl">💰</span>
-                <div>
-                  <span className="text-xs text-slate-400 font-medium block">Did we make money today?</span>
-                  <span className="text-lg font-black text-emerald-400 font-mono">KES {totalDeposits.toLocaleString()}</span>
-                </div>
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                <span className="text-xs text-slate-400 font-medium block">Total Collected Today</span>
+                <span className="text-xl font-black text-emerald-400 font-mono mt-2">KES {totalDeposits.toLocaleString()}</span>
               </div>
 
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center gap-3">
-                <span className="text-2xl">⏳</span>
-                <div>
-                  <span className="text-xs text-slate-400 font-medium block">Which orders are due today?</span>
-                  <span className="text-lg font-black text-amber-400 font-mono">{dueTodayOrders.length} Due Today</span>
-                </div>
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                <span className="text-xs text-slate-400 font-medium block">Orders Due Today</span>
+                <span className="text-xl font-black text-amber-400 font-mono mt-2">{dueTodayOrders.length} Pending</span>
               </div>
 
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center gap-3">
-                <span className="text-2xl">🛍️</span>
-                <div>
-                  <span className="text-xs text-slate-400 font-medium block">Customers Awaiting Pickup?</span>
-                  <span className="text-lg font-black text-blue-400 font-mono">{awaitingPickup.length} Ready in QC</span>
-                </div>
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                <span className="text-xs text-slate-400 font-medium block">Customers Awaiting Pickup</span>
+                <span className="text-xl font-black text-blue-400 font-mono mt-2">{awaitingPickup.length} Ready in QC</span>
               </div>
 
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center gap-3">
-                <span className="text-2xl">⚠️</span>
-                <div>
-                  <span className="text-xs text-slate-400 font-medium block">Running out of fabric?</span>
-                  <span className={`text-lg font-black font-mono ${lowStockAlerts.length > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                    {lowStockAlerts.length > 0 ? `${lowStockAlerts.length} Items Low` : 'Stock Healthy'}
-                  </span>
-                </div>
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                <span className="text-xs text-slate-400 font-medium block">Material Reorder Alerts</span>
+                <span className={`text-xl font-black font-mono mt-2 ${lowStockAlerts.length > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  {lowStockAlerts.length > 0 ? `${lowStockAlerts.length} Items Low` : 'Stock Healthy'}
+                </span>
               </div>
             </div>
           </div>
         )}
 
-        {/* 📊 High-Contrast Semantic Metric KPI Cards */}
+        {/* Semantic Financial KPI Cards */}
         {view === 'desktop' && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-slate-900 border border-slate-800 border-t-4 border-t-blue-500 p-4 rounded-xl shadow-lg">
@@ -494,8 +482,8 @@ export default function LiveControlTower() {
         )}
 
         {errorMsg && (
-          <div className="p-4 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-xs font-semibold shadow-md flex items-center gap-2">
-             <span>⚠️</span> <span>Rule Alert: {errorMsg}</span>
+          <div className="p-4 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-xs font-semibold shadow-md">
+            System Alert: {errorMsg}
           </div>
         )}
 
@@ -503,7 +491,7 @@ export default function LiveControlTower() {
           <div className="space-y-8">
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
 
-              {/* 🧙‍♂️ Step-by-Step Interactive Intake Wizard */}
+              {/* Multi-Step Intake Form */}
               <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl h-fit">
                 <div className="border-b border-slate-800 pb-3 mb-4 flex justify-between items-center">
                   <div>
@@ -511,11 +499,11 @@ export default function LiveControlTower() {
                     <p className="text-xs text-slate-400">Step {intakeStep} of 5</p>
                   </div>
                   <span className="text-xs font-mono font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded">
-                    Wizard Mode
+                    Order Intake
                   </span>
                 </div>
 
-                {/* Wizard Progress Indicator */}
+                {/* Progress Bar */}
                 <div className="flex space-x-1 mb-6">
                   {[1, 2, 3, 4, 5].map((step) => (
                     <div
@@ -532,7 +520,7 @@ export default function LiveControlTower() {
                     <div className="space-y-3">
                       <span className="text-xs font-bold text-slate-300 block">Step 1: Customer Contact</span>
                       <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Sales Rep</label>
+                        <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Sales Representative</label>
                         <select
                           value={formData.salesRep}
                           onChange={(e) => setFormData({ ...formData, salesRep: e.target.value })}
@@ -553,7 +541,7 @@ export default function LiveControlTower() {
                       />
                       <input
                         type="text"
-                        placeholder="Phone (e.g. 0712...)"
+                        placeholder="Phone Number"
                         value={formData.customerPhone}
                         onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
                         className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 placeholder:text-slate-500 text-sm focus:border-blue-500"
@@ -564,15 +552,15 @@ export default function LiveControlTower() {
                         onClick={() => setIntakeStep(2)}
                         className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg uppercase tracking-wider transition disabled:opacity-50"
                       >
-                        Next: Garment & Fabric →
+                        Next: Garment Selection &rarr;
                       </button>
                     </div>
                   )}
 
-                  {/* STEP 2: GARMENT & FABRIC (WITH SMART DEFAULTS) */}
+                  {/* STEP 2: GARMENT & FABRIC */}
                   {intakeStep === 2 && (
                     <div className="space-y-3">
-                      <span className="text-xs font-bold text-slate-300 block">Step 2: Garment & Fabric Selection</span>
+                      <span className="text-xs font-bold text-slate-300 block">Step 2: Garment & Fabric</span>
                       <div>
                         <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Garment Type</label>
                         <div className="grid grid-cols-2 gap-2">
@@ -597,7 +585,7 @@ export default function LiveControlTower() {
                           className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 text-sm"
                         >
                           {fabrics.map((f) => (
-                            <option key={f._id} value={f.name}>{f.name} ({f.stockLevel}m in stock)</option>
+                            <option key={f._id} value={f.name}>{f.name} ({f.stockLevel}m available)</option>
                           ))}
                         </select>
                       </div>
@@ -615,8 +603,8 @@ export default function LiveControlTower() {
                       </div>
 
                       <div className="flex gap-2">
-                        <button type="button" onClick={() => setIntakeStep(1)} className="w-1/3 py-2.5 bg-slate-800 text-slate-300 font-bold text-xs rounded-lg">← Back</button>
-                        <button type="button" onClick={() => setIntakeStep(3)} className="w-2/3 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-lg uppercase">Next: Measurements →</button>
+                        <button type="button" onClick={() => setIntakeStep(1)} className="w-1/3 py-2.5 bg-slate-800 text-slate-300 font-bold text-xs rounded-lg">&larr; Back</button>
+                        <button type="button" onClick={() => setIntakeStep(3)} className="w-2/3 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-lg uppercase">Next: Measurements &rarr;</button>
                       </div>
                     </div>
                   )}
@@ -624,28 +612,28 @@ export default function LiveControlTower() {
                   {/* STEP 3: MEASUREMENTS */}
                   {intakeStep === 3 && (
                     <div className="space-y-3">
-                      <span className="text-xs font-bold text-slate-300 block">Step 3: Blueprint Metrics (Inches)</span>
+                      <span className="text-xs font-bold text-slate-300 block">Step 3: Measurements (Inches)</span>
                       <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-3">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Upper Body</span>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Upper Body Specs</span>
                         <div className="grid grid-cols-3 gap-2">
                           <div>
-                            <span className="text-[9px] text-slate-500 block text-center">NECK</span>
+                            <span className="text-[9px] text-slate-500 block text-center font-mono">NECK</span>
                             <input type="number" step="0.25" placeholder="0" value={formData.neck === '0' ? '' : formData.neck} onChange={e => setFormData({ ...formData, neck: e.target.value })} className="p-2 text-center rounded bg-slate-900 border border-slate-800 text-slate-100 text-xs w-full" />
                           </div>
                           <div>
-                            <span className="text-[9px] text-slate-500 block text-center">CHEST</span>
+                            <span className="text-[9px] text-slate-500 block text-center font-mono">CHEST</span>
                             <input type="number" step="0.25" placeholder="0" value={formData.chest === '0' ? '' : formData.chest} onChange={e => setFormData({ ...formData, chest: e.target.value })} className="p-2 text-center rounded bg-slate-900 border border-slate-800 text-slate-100 text-xs w-full" />
                           </div>
                           <div>
-                            <span className="text-[9px] text-slate-500 block text-center">WAIST</span>
+                            <span className="text-[9px] text-slate-500 block text-center font-mono">WAIST</span>
                             <input type="number" step="0.25" placeholder="0" value={formData.waist === '0' ? '' : formData.waist} onChange={e => setFormData({ ...formData, waist: e.target.value })} className="p-2 text-center rounded bg-slate-900 border border-slate-800 text-slate-100 text-xs w-full" />
                           </div>
                         </div>
                       </div>
 
                       <div className="flex gap-2">
-                        <button type="button" onClick={() => setIntakeStep(2)} className="w-1/3 py-2.5 bg-slate-800 text-slate-300 font-bold text-xs rounded-lg">← Back</button>
-                        <button type="button" onClick={() => setIntakeStep(4)} className="w-2/3 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-lg uppercase">Next: Pricing →</button>
+                        <button type="button" onClick={() => setIntakeStep(2)} className="w-1/3 py-2.5 bg-slate-800 text-slate-300 font-bold text-xs rounded-lg">&larr; Back</button>
+                        <button type="button" onClick={() => setIntakeStep(4)} className="w-2/3 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-lg uppercase">Next: Payment &rarr;</button>
                       </div>
                     </div>
                   )}
@@ -653,7 +641,7 @@ export default function LiveControlTower() {
                   {/* STEP 4: FINANCIALS */}
                   {intakeStep === 4 && (
                     <div className="space-y-3">
-                      <span className="text-xs font-bold text-slate-300 block">Step 4: Payment Terms</span>
+                      <span className="text-xs font-bold text-slate-300 block">Step 4: Financial Terms</span>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Total (KES)</label>
@@ -678,13 +666,13 @@ export default function LiveControlTower() {
                       </div>
 
                       <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 flex justify-between items-center">
-                        <span className="text-[10px] font-bold uppercase text-slate-400">Balance Unpaid</span>
+                        <span className="text-[10px] font-bold uppercase text-slate-400">Balance Remaining</span>
                         <span className="text-xs font-black font-mono text-emerald-400">KES {balanceRemaining.toLocaleString()}</span>
                       </div>
 
                       <div className="flex gap-2">
-                        <button type="button" onClick={() => setIntakeStep(3)} className="w-1/3 py-2.5 bg-slate-800 text-slate-300 font-bold text-xs rounded-lg">← Back</button>
-                        <button type="button" onClick={() => setIntakeStep(5)} className="w-2/3 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-lg uppercase">Next: Delivery →</button>
+                        <button type="button" onClick={() => setIntakeStep(3)} className="w-1/3 py-2.5 bg-slate-800 text-slate-300 font-bold text-xs rounded-lg">&larr; Back</button>
+                        <button type="button" onClick={() => setIntakeStep(5)} className="w-2/3 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-lg uppercase">Next: Delivery &rarr;</button>
                       </div>
                     </div>
                   )}
@@ -708,13 +696,13 @@ export default function LiveControlTower() {
                       </div>
 
                       <div className="flex gap-2">
-                        <button type="button" onClick={() => setIntakeStep(4)} className="w-1/3 py-2.5 bg-slate-800 text-slate-300 font-bold text-xs rounded-lg">← Back</button>
+                        <button type="button" onClick={() => setIntakeStep(4)} className="w-1/3 py-2.5 bg-slate-800 text-slate-300 font-bold text-xs rounded-lg">&larr; Back</button>
                         <button
                           type="submit"
                           disabled={loading}
                           className="w-2/3 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-lg uppercase tracking-wider transition shadow-md shadow-emerald-500/20"
                         >
-                          {loading ? 'Validating...' : 'Confirm Order ✓'}
+                          {loading ? 'Validating...' : 'Confirm Order'}
                         </button>
                       </div>
                     </div>
@@ -723,7 +711,7 @@ export default function LiveControlTower() {
                 </form>
               </div>
 
-              {/* 📋 Refactored Kanban Pipeline Board */}
+              {/* Kanban Pipeline Board */}
               <div className="xl:col-span-3 overflow-x-auto pb-4">
                 <div className="flex space-x-4 min-w-[1200px]">
                   {STAGES.map((stage, idx) => {
@@ -763,13 +751,13 @@ export default function LiveControlTower() {
                               </div>
 
                               <div className="mt-2.5 pt-2 border-t border-slate-800 text-[10px] text-slate-400 space-y-0.5">
-                                {order.salesRep && <div>👩‍💼 Sales: <span className="text-slate-200 font-medium">{order.salesRep}</span></div>}
-                                {stage === 'Cutting' && <div>✂️ Cutting Lead: <span className="text-slate-200 font-medium">{CUTTERS[0]}</span></div>}
-                                {order.assignedTailor && <div>🧵 Tailor: <span className="text-slate-200 font-medium">{order.assignedTailor}</span></div>}
+                                {order.salesRep && <div>Sales Rep: <span className="text-slate-200 font-medium">{order.salesRep}</span></div>}
+                                {stage === 'Cutting' && <div>Cutting Lead: <span className="text-slate-200 font-medium">{CUTTERS[0]}</span></div>}
+                                {order.assignedTailor && <div>Tailor: <span className="text-slate-200 font-medium">{order.assignedTailor}</span></div>}
                                 {order.qcPassedBy ? (
-                                  <div className="text-emerald-400 font-bold">🔍 QC Passed By: {order.qcPassedBy}</div>
+                                  <div className="text-emerald-400 font-bold">QC Approved: {order.qcPassedBy}</div>
                                 ) : (
-                                  stage === 'QC' && <div>🔍 QC Inspectors: {FINISHERS.join(', ')}</div>
+                                  stage === 'QC' && <div>Inspectors: {FINISHERS.join(', ')}</div>
                                 )}
                               </div>
 
@@ -798,7 +786,7 @@ export default function LiveControlTower() {
                                     onClick={() => advanceOrder(order)}
                                     className="text-[10px] font-extrabold text-blue-400 hover:text-white border border-blue-500/30 hover:bg-blue-600 px-2.5 py-1 rounded-md transition-all shadow-sm"
                                   >
-                                    Move Next →
+                                    Advance &rarr;
                                   </button>
                                 ) : null}
                               </div>
@@ -817,9 +805,9 @@ export default function LiveControlTower() {
               </div>
             </div>
 
-            {/* 📦 Refactored Warehouse Inventory Manager with Visual Progress Meters */}
+            {/* Warehouse Inventory Manager */}
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-              <h2 className="text-lg font-black text-slate-100 tracking-tight">📦 Material & Inventory Health</h2>
+              <h2 className="text-lg font-black text-slate-100 tracking-tight">Material & Inventory Levels</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {fullInventory.map((item) => {
                   const isLow = item.stockLevel <= item.minimumLevel;
@@ -833,11 +821,11 @@ export default function LiveControlTower() {
                           <span className="text-[10px] font-mono text-slate-400">{item.category}</span>
                         </div>
                         <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${isLow ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400'}`}>
-                          {item.stockLevel} {item.unit} {isLow && '⚠️ LOW'}
+                          {item.stockLevel} {item.unit} {isLow && 'LOW'}
                         </span>
                       </div>
 
-                      {/* Visual Progress Bar Meter */}
+                      {/* Stock Visual Indicator */}
                       <div className="space-y-1 pt-1">
                         <div className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
                           <div
@@ -846,8 +834,8 @@ export default function LiveControlTower() {
                           />
                         </div>
                         <div className="flex justify-between text-[10px] font-mono text-slate-500">
-                          <span>Safety Threshold: {item.minimumLevel} {item.unit}</span>
-                          <span>{percentage}% Stocked</span>
+                          <span>Threshold: {item.minimumLevel} {item.unit}</span>
+                          <span>{percentage}% Capacity</span>
                         </div>
                       </div>
 
@@ -870,7 +858,7 @@ export default function LiveControlTower() {
           </div>
         )}
 
-        {/* 📱 Refactored Mobile Workshop View */}
+        {/* Mobile Workshop Floor View */}
         {view === 'mobile' && (
           <div className="max-w-md mx-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 min-h-[80vh] flex flex-col justify-between">
             <div>
@@ -878,12 +866,12 @@ export default function LiveControlTower() {
                 <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
                   Workshop Floor View
                 </span>
-                <h2 className="text-xl font-black text-slate-100 mt-1.5">📱 Mobile Tracker Matrix</h2>
+                <h2 className="text-xl font-black text-slate-100 mt-1.5">Mobile Production Matrix</h2>
               </div>
 
               {!selectedOrderForMobile ? (
                 <div>
-                  {/* Quick Department Filter Tabs */}
+                  {/* Department Filter Bar */}
                   <div className="mb-4 flex space-x-1 bg-slate-950 p-1.5 rounded-xl border border-slate-800 overflow-x-auto text-[11px]">
                     <button
                       type="button"
@@ -897,21 +885,21 @@ export default function LiveControlTower() {
                       onClick={() => setMobileDepartmentFilter('Cutting')}
                       className={`px-3 py-2 rounded-lg font-black whitespace-nowrap transition-all ${mobileDepartmentFilter === 'Cutting' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
                     >
-                      ✂️ Cutting ({orders.filter(o => (o.status === 'Cutting' || o.status === 'Ready')).length})
+                      Cutting ({orders.filter(o => (o.status === 'Cutting' || o.status === 'Ready')).length})
                     </button>
                     <button
                       type="button"
                       onClick={() => setMobileDepartmentFilter('Assembly')}
                       className={`px-3 py-2 rounded-lg font-black whitespace-nowrap transition-all ${mobileDepartmentFilter === 'Assembly' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
                     >
-                      🧵 Assembly ({orders.filter(o => (o.status === 'Assignment' || o.status === 'Sewing')).length})
+                      Assembly ({orders.filter(o => (o.status === 'Assignment' || o.status === 'Sewing')).length})
                     </button>
                     <button
                       type="button"
                       onClick={() => setMobileDepartmentFilter('QC')}
                       className={`px-3 py-2 rounded-lg font-black whitespace-nowrap transition-all ${mobileDepartmentFilter === 'QC' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
                     >
-                      🔍 QC ({orders.filter(o => o.status === 'QC').length})
+                      QC ({orders.filter(o => o.status === 'QC').length})
                     </button>
                   </div>
 
@@ -938,7 +926,7 @@ export default function LiveControlTower() {
                           <h4 className="font-bold text-slate-100 text-sm mt-1.5">{order.customerName}</h4>
                           <p className="text-xs text-slate-400">{order.garmentType} • {order.fabricSelection}</p>
                         </div>
-                        <span className="text-xl text-slate-500 group-hover:text-blue-400 transition-colors">→</span>
+                        <span className="text-xl text-slate-500 group-hover:text-blue-400 transition-colors">&rarr;</span>
                       </button>
                     ))}
 
@@ -953,17 +941,17 @@ export default function LiveControlTower() {
                 <div className="space-y-6">
                   <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
                     <button onClick={() => setSelectedOrderForMobile(null)} className="text-xs text-slate-400 hover:text-white mb-2 block font-semibold">
-                      ← Back to list
+                      &larr; Back to Order List
                     </button>
                     <span className="text-xs font-black text-blue-400 font-mono bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">{selectedOrderForMobile.orderId}</span>
                     <h3 className="text-lg font-black text-slate-100 mt-1">{selectedOrderForMobile.customerName}</h3>
                   </div>
 
-                  {/* Cutting Department Action */}
+                  {/* Cutting Department Section */}
                   <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-4">
                     <div className="flex justify-between items-center">
-                      <h4 className="text-xs font-black text-slate-300 tracking-wider uppercase">✂️ Cutting Metrics</h4>
-                      <span className="text-[10px] font-extrabold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">Cutter: {CUTTERS[0]}</span>
+                      <h4 className="text-xs font-black text-slate-300 tracking-wider uppercase">Cutting Department</h4>
+                      <span className="text-[10px] font-extrabold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">Lead: {CUTTERS[0]}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
@@ -1013,9 +1001,9 @@ export default function LiveControlTower() {
                     </button>
                   </div>
 
-                  {/* Tailors Assembly Action */}
+                  {/* Assembly Department Section */}
                   <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-4">
-                    <h4 className="text-xs font-black text-slate-300 tracking-wider uppercase">🤝 Assign Tailor (Assembly)</h4>
+                    <h4 className="text-xs font-black text-slate-300 tracking-wider uppercase">Assign Tailor (Assembly)</h4>
                     <div className="grid grid-cols-2 gap-2">
                       {TAILORS.map((tailor) => (
                         <button
@@ -1028,13 +1016,13 @@ export default function LiveControlTower() {
                       ))}
                     </div>
                     <button onClick={submitTailorAssignment} disabled={!selectedTailor} className="w-full bg-blue-600 disabled:opacity-40 hover:bg-blue-500 text-white text-xs font-black py-2.5 rounded-lg transition uppercase tracking-wider shadow-md shadow-blue-500/20">
-                      Confirm Tailor & Set to Assigned
+                      Confirm Tailor Assignment
                     </button>
                   </div>
 
-                  {/* Finishing Dept QC Inspection Action */}
+                  {/* QC Inspection Section */}
                   <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-4">
-                    <h4 className="text-xs font-black text-slate-300 tracking-wider uppercase">🔍 Finishing Dept QC Inspection</h4>
+                    <h4 className="text-xs font-black text-slate-300 tracking-wider uppercase">QC & Quality Inspection</h4>
                     <div>
                       <label className="block text-[10px] font-bold text-slate-400 mb-1.5">Select Inspector</label>
                       <div className="grid grid-cols-2 gap-2">
@@ -1053,7 +1041,7 @@ export default function LiveControlTower() {
                       onClick={() => passQCOrder(selectedOrderForMobile._id, selectedFinisher)}
                       className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black py-2.5 rounded-lg transition uppercase tracking-wider shadow-md shadow-emerald-500/20"
                     >
-                      Pass QC & Approve Dispatch ({selectedFinisher})
+                      Approve QC & Pass to Dispatch ({selectedFinisher})
                     </button>
                   </div>
                 </div>
