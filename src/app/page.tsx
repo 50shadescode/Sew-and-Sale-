@@ -339,8 +339,8 @@ export default function LiveControlTower() {
     <main className="min-h-screen bg-slate-950 text-slate-100 font-sans">
       <nav className="bg-slate-900 border-b border-slate-800 px-6 py-3 flex justify-between items-center">
         <div className="flex items-center space-x-3">
-          {/* 🖼️ Leah's Official Sew & Sell Logo */}
-          <div className="relative w-11 h-11 overflow-hidden rounded-lg bg-slate-800 border border-slate-700/60 flex items-center justify-center shrink-0">
+          {/* 🖼️ Official Logo Badge */}
+          <div className="relative w-12 h-12 overflow-hidden rounded-xl bg-slate-800 border border-slate-700/60 flex items-center justify-center shrink-0 shadow-sm">
             <Image
               src="/logo.jpg"
               alt="Sew & Sell Logo"
@@ -354,9 +354,9 @@ export default function LiveControlTower() {
             <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded tracking-wider uppercase">
               LIVE WORKSPACE
             </span>
-            <h1 className="text-xl font-black text-white mt-0.5 tracking-tight">
-              Sew & Sell <span className="text-slate-400 font-medium text-base">UNIFORMS</span>
-            </h1>
+            <p className="text-xs font-semibold text-slate-400 mt-0.5">
+              Management Portal
+            </p>
           </div>
         </div>
 
