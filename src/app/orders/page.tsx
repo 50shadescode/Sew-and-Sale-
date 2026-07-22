@@ -45,23 +45,23 @@ export default function OrdersPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-100">Production Pipeline</h1>
-          <p className="text-base text-slate-400">Track and manage active workshop orders</p>
+          <p className="text-base text-slate-400 mt-1">Track and manage active workshop orders</p>
         </div>
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex items-center gap-4 w-full md:w-auto">
           <input
             type="text"
             placeholder="Search by customer name or Order ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 text-base w-full md:w-80 focus:border-blue-500 outline-none"
+            className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-base w-full md:w-80 focus:border-blue-500 outline-none"
           />
           <Link
             href="/orders/new"
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-base rounded-lg transition shrink-0"
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-base rounded-xl transition shrink-0"
           >
             + Create Order
           </Link>
@@ -74,21 +74,21 @@ export default function OrdersPage() {
             const stageOrders = filteredOrders.filter((o) => o.status === stage);
             return (
               <div key={stage} className="bg-slate-900/50 border border-slate-800 rounded-2xl p-4 w-72 flex flex-col h-[75vh]">
-                <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-2.5">
-                  <span className="text-base font-bold text-slate-200 uppercase">{idx + 1}. {stage}</span>
-                  <span className="bg-blue-500/10 border border-blue-500/20 text-blue-400 text-base px-2.5 py-0.5 rounded-full font-bold">
+                <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-2 flex-shrink-0">
+                  <h2 className="text-xl font-bold text-slate-200">{idx + 1}. {stage}</h2>
+                  <span className="bg-blue-500/10 border border-blue-500/20 text-blue-400 text-base px-3 py-1 rounded-full font-bold">
                     {stageOrders.length}
                   </span>
                 </div>
 
-                <div className="flex-1 overflow-y-auto space-y-3">
+                <div className="flex-1 overflow-y-auto space-y-4 pr-1">
                   {stageOrders.map((order) => (
                     <div key={order._id} className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
                       <div className="flex justify-between items-start">
-                        <span className="text-base font-bold text-blue-400 font-mono bg-blue-500/10 px-2 py-0.5 rounded">{order.orderId}</span>
+                        <span className="text-base font-bold text-blue-400 font-mono bg-blue-500/10 px-2 py-1 rounded">{order.orderId}</span>
                         <span className="text-base text-amber-400 font-medium">Due {new Date(order.dueDate).toLocaleDateString()}</span>
                       </div>
-                      <h4 className="font-bold text-slate-100 text-base">{order.customerName}</h4>
+                      <h3 className="text-xl font-bold text-slate-100">{order.customerName}</h3>
                       <p className="text-base text-slate-400">{order.garmentType} • {order.fabricSelection} ({order.fabricQuantityRequired}m)</p>
                       
                       <div className="pt-2 border-t border-slate-800 flex justify-between items-center">
@@ -96,7 +96,7 @@ export default function OrdersPage() {
                         {stage !== 'Dispatched' && (
                           <button
                             onClick={() => advanceOrder(order)}
-                            className="text-base font-bold text-blue-400 hover:text-white border border-blue-500/30 hover:bg-blue-600 px-2.5 py-1 rounded-md transition"
+                            className="text-base font-bold text-blue-400 hover:text-white border border-blue-500/30 hover:bg-blue-600 px-3 py-1 rounded-lg transition"
                           >
                             Advance &rarr;
                           </button>
