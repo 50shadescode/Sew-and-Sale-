@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 interface OrderType {
   _id: string;
@@ -336,21 +337,39 @@ export default function LiveControlTower() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 font-sans">
-      <nav className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex justify-between items-center">
-        <div>
-          <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">LIVE WORKSPACE</span>
-          <h1 className="text-2xl font-black text-white mt-1">🧵 SEW & SALE Dashboard</h1>
+      <nav className="bg-slate-900 border-b border-slate-800 px-6 py-3 flex justify-between items-center">
+        <div className="flex items-center space-x-3">
+          {/* 🖼️ Leah's Official Sew & Sell Logo */}
+          <div className="relative w-11 h-11 overflow-hidden rounded-lg bg-slate-800 border border-slate-700/60 flex items-center justify-center shrink-0">
+            <Image
+              src="/logo.jpg"
+              alt="Sew & Sell Logo"
+              fill
+              className="object-cover"
+              priority
+            />
+          </div>
+
+          <div>
+            <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded tracking-wider uppercase">
+              LIVE WORKSPACE
+            </span>
+            <h1 className="text-xl font-black text-white mt-0.5 tracking-tight">
+              Sew & Sell <span className="text-slate-400 font-medium text-base">UNIFORMS</span>
+            </h1>
+          </div>
         </div>
+
         <div className="flex bg-slate-800 p-1.5 rounded-lg border border-slate-700">
           <button
             onClick={() => { setView('desktop'); setErrorMsg(null); }}
-            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${view === 'desktop' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}`}
+            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${view === 'desktop' ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400'}`}
           >
             💻 Control Tower (Desktop)
           </button>
           <button
             onClick={() => { setView('mobile'); setErrorMsg(null); }}
-            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${view === 'mobile' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}`}
+            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${view === 'mobile' ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400'}`}
           >
             📱 Workshop Floor (Mobile)
           </button>
