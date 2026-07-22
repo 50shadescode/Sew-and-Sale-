@@ -15,11 +15,17 @@ interface OrderType {
   measurements: {
     neck: number;
     chest: number;
+    shoulder?: number;
     waist: number;
+    hip?: number;
+    length?: number;
   };
   priceTotal: number;
   depositPaid: number;
   balanceRemaining: number;
+  paymentMethod?: 'M-Pesa' | 'Cash' | 'Bank Transfer';
+  priority?: 'Standard' | 'Express' | 'Urgent';
+  notes?: string;
   dueDate: string;
   status: 'Intake' | 'Ready' | 'Cutting' | 'Assignment' | 'Sewing' | 'QC' | 'Dispatched';
   fabricMetersUsed?: number;
@@ -60,10 +66,11 @@ export default function LiveControlTower() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Intake Form State Navigation
+  // 5-Step Intake Form Navigation
   const [intakeStep, setIntakeStep] = useState<number>(1);
+  const [clientSearchQuery, setClientSearchQuery] = useState<string>('');
 
-  // Mobile View Quick Department Filter State
+  // Mobile View Department Filter State
   const [mobileDepartmentFilter, setMobileDepartmentFilter] = useState<string>('ALL');
 
   // Dynamic Stock & Inventory States
@@ -73,7 +80,7 @@ export default function LiveControlTower() {
   const [newStock, setNewStock] = useState<number>(0);
   const [newMin, setNewMin] = useState<number>(0);
 
-  // Mobile Floor inputs
+  // Mobile Floor Inputs
   const [mobileFabricUsed, setMobileFabricUsed] = useState<number>(0);
   const [mobilePatternsCut, setMobilePatternsCut] = useState<number>(0);
   const [selectedTailor, setSelectedTailor] = useState<string>('');
@@ -87,11 +94,20 @@ export default function LiveControlTower() {
     garmentType: 'Suit' as 'Suit' | 'Dress' | 'Shirt' | 'Native',
     fabricSelection: '',
     fabricQuantityRequired: '2.5',
+    // Upper Body Specs
     neck: '0',
     chest: '0',
+    shoulder: '0',
+    // Lower Body Specs
     waist: '0',
+    hip: '0',
+    length: '0',
+    // Financials
     priceTotal: '15000',
     depositPaid: '5000',
+    paymentMethod: 'M-Pesa' as 'M-Pesa' | 'Cash' | 'Bank Transfer',
+    priority: 'Standard' as 'Standard' | 'Express' | 'Urgent',
+    notes: '',
     dueDate: '',
   });
 
@@ -101,10 +117,19 @@ export default function LiveControlTower() {
   const totalOutstanding = orders.reduce((acc, curr) => acc + (curr.balanceRemaining || 0), 0);
   const lowStockAlerts = fullInventory.filter(item => item.stockLevel <= item.minimumLevel);
 
-  // Operational Question Engine Metrics
+  // Operational Questions Metrics
   const todayStr = new Date().toISOString().split('T')[0];
   const dueTodayOrders = orders.filter(o => o.dueDate && o.dueDate.startsWith(todayStr));
   const awaitingPickup = orders.filter(o => o.status === 'QC');
+
+  // Returning Clients Filter
+  const uniqueClients = Array.from(
+    new Set(orders.map(o => o.customerName))
+  ).map(name => orders.find(o => o.customerName === name)!);
+
+  const filteredClients = clientSearchQuery.trim() === '' 
+    ? [] 
+    : uniqueClients.filter(c => c.customerName.toLowerCase().includes(clientSearchQuery.toLowerCase()));
 
   // Auto-calculated Financial Balance
   const balanceRemaining = Math.max(
@@ -170,6 +195,22 @@ export default function LiveControlTower() {
     }));
   };
 
+  // Auto-Fill Repeat Client Details
+  const handleSelectExistingClient = (clientOrder: OrderType) => {
+    setFormData(prev => ({
+      ...prev,
+      customerName: clientOrder.customerName,
+      customerPhone: clientOrder.customerPhone || '',
+      neck: clientOrder.measurements?.neck?.toString() || '0',
+      chest: clientOrder.measurements?.chest?.toString() || '0',
+      shoulder: clientOrder.measurements?.shoulder?.toString() || '0',
+      waist: clientOrder.measurements?.waist?.toString() || '0',
+      hip: clientOrder.measurements?.hip?.toString() || '0',
+      length: clientOrder.measurements?.length?.toString() || '0',
+    }));
+    setClientSearchQuery('');
+  };
+
   const handleUpdateStock = async (name: string) => {
     try {
       const res = await fetch('/api/inventory', {
@@ -204,10 +245,16 @@ export default function LiveControlTower() {
       measurements: {
         neck: Number(formData.neck) || 0,
         chest: Number(formData.chest) || 0,
+        shoulder: Number(formData.shoulder) || 0,
         waist: Number(formData.waist) || 0,
+        hip: Number(formData.hip) || 0,
+        length: Number(formData.length) || 0,
       },
       priceTotal: Number(formData.priceTotal) || 0,
       depositPaid: Number(formData.depositPaid) || 0,
+      paymentMethod: formData.paymentMethod,
+      priority: formData.priority,
+      notes: formData.notes,
       dueDate: formData.dueDate ? new Date(formData.dueDate) : new Date(),
     };
 
@@ -233,9 +280,15 @@ export default function LiveControlTower() {
           fabricQuantityRequired: '2.5',
           neck: '0',
           chest: '0',
+          shoulder: '0',
           waist: '0',
+          hip: '0',
+          length: '0',
           priceTotal: '15000', 
           depositPaid: '5000', 
+          paymentMethod: 'M-Pesa',
+          priority: 'Standard',
+          notes: '',
           dueDate: '' 
         });
       }
@@ -491,7 +544,7 @@ export default function LiveControlTower() {
           <div className="space-y-8">
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
 
-              {/* Multi-Step Intake Form */}
+              {/* FULL PHASE 2: 5-STEP SMART INTAKE WIZARD */}
               <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl h-fit">
                 <div className="border-b border-slate-800 pb-3 mb-4 flex justify-between items-center">
                   <div>
@@ -499,11 +552,11 @@ export default function LiveControlTower() {
                     <p className="text-xs text-slate-400">Step {intakeStep} of 5</p>
                   </div>
                   <span className="text-xs font-mono font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded">
-                    Order Intake
+                    Intake Wizard
                   </span>
                 </div>
 
-                {/* Progress Bar */}
+                {/* Wizard Progress Bar */}
                 <div className="flex space-x-1 mb-6">
                   {[1, 2, 3, 4, 5].map((step) => (
                     <div
@@ -515,11 +568,42 @@ export default function LiveControlTower() {
 
                 <form onSubmit={handleIntakeSubmit} className="space-y-4">
 
-                  {/* STEP 1: CUSTOMER CONTACT */}
+                  {/* STEP 1: CUSTOMER CONTACT & SEARCH */}
                   {intakeStep === 1 && (
                     <div className="space-y-3">
                       <span className="text-xs font-bold text-slate-300 block">Step 1: Customer Contact</span>
-                      <div>
+                      
+                      {/* Search Existing Client Quick Lookup */}
+                      <div className="relative">
+                        <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Search Returning Client</label>
+                        <input
+                          type="text"
+                          placeholder="Search client by name..."
+                          value={clientSearchQuery}
+                          onChange={(e) => setClientSearchQuery(e.target.value)}
+                          className="w-full p-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 text-xs focus:border-blue-500"
+                        />
+                        {filteredClients.length > 0 && (
+                          <div className="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-800 rounded-lg shadow-2xl z-20 max-h-40 overflow-y-auto divide-y divide-slate-800">
+                            {filteredClients.map((client) => (
+                              <button
+                                type="button"
+                                key={client._id}
+                                onClick={() => handleSelectExistingClient(client)}
+                                className="w-full text-left p-2.5 hover:bg-slate-800 transition text-xs flex justify-between items-center"
+                              >
+                                <div>
+                                  <div className="font-bold text-slate-100">{client.customerName}</div>
+                                  <div className="text-[10px] text-slate-400">{client.customerPhone || 'No Phone'}</div>
+                                </div>
+                                <span className="text-[10px] font-mono text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">Auto-fill Specs</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="border-t border-slate-800/80 pt-2">
                         <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Sales Representative</label>
                         <select
                           value={formData.salesRep}
@@ -531,21 +615,30 @@ export default function LiveControlTower() {
                           ))}
                         </select>
                       </div>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Customer Full Name"
-                        value={formData.customerName}
-                        onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                        className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 placeholder:text-slate-500 text-sm focus:border-blue-500"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Phone Number"
-                        value={formData.customerPhone}
-                        onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
-                        className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 placeholder:text-slate-500 text-sm focus:border-blue-500"
-                      />
+
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Customer Full Name</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Customer Full Name"
+                          value={formData.customerName}
+                          onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                          className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 placeholder:text-slate-500 text-sm focus:border-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Phone Number</label>
+                        <input
+                          type="text"
+                          placeholder="Phone Number (e.g. 0712...)"
+                          value={formData.customerPhone}
+                          onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
+                          className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 placeholder:text-slate-500 text-sm focus:border-blue-500"
+                        />
+                      </div>
+
                       <button
                         type="button"
                         disabled={!formData.customerName}
@@ -557,10 +650,10 @@ export default function LiveControlTower() {
                     </div>
                   )}
 
-                  {/* STEP 2: GARMENT & FABRIC */}
+                  {/* STEP 2: GARMENT & FABRIC (WITH SMART DEFAULTS) */}
                   {intakeStep === 2 && (
                     <div className="space-y-3">
-                      <span className="text-xs font-bold text-slate-300 block">Step 2: Garment & Fabric</span>
+                      <span className="text-xs font-bold text-slate-300 block">Step 2: Garment & Fabric Selection</span>
                       <div>
                         <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Garment Type</label>
                         <div className="grid grid-cols-2 gap-2">
@@ -609,12 +702,14 @@ export default function LiveControlTower() {
                     </div>
                   )}
 
-                  {/* STEP 3: MEASUREMENTS */}
+                  {/* STEP 3: BLUEPRINT MEASUREMENTS (UPPER VS LOWER BODY CARDS) */}
                   {intakeStep === 3 && (
                     <div className="space-y-3">
                       <span className="text-xs font-bold text-slate-300 block">Step 3: Measurements (Inches)</span>
-                      <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-3">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Upper Body Specs</span>
+                      
+                      {/* Upper Body Specs */}
+                      <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+                        <span className="text-[10px] uppercase font-bold text-blue-400 block">Upper Body Specs</span>
                         <div className="grid grid-cols-3 gap-2">
                           <div>
                             <span className="text-[9px] text-slate-500 block text-center font-mono">NECK</span>
@@ -625,23 +720,42 @@ export default function LiveControlTower() {
                             <input type="number" step="0.25" placeholder="0" value={formData.chest === '0' ? '' : formData.chest} onChange={e => setFormData({ ...formData, chest: e.target.value })} className="p-2 text-center rounded bg-slate-900 border border-slate-800 text-slate-100 text-xs w-full" />
                           </div>
                           <div>
+                            <span className="text-[9px] text-slate-500 block text-center font-mono">SHOULDER</span>
+                            <input type="number" step="0.25" placeholder="0" value={formData.shoulder === '0' ? '' : formData.shoulder} onChange={e => setFormData({ ...formData, shoulder: e.target.value })} className="p-2 text-center rounded bg-slate-900 border border-slate-800 text-slate-100 text-xs w-full" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Lower Body Specs */}
+                      <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+                        <span className="text-[10px] uppercase font-bold text-blue-400 block">Lower Body & Length</span>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
                             <span className="text-[9px] text-slate-500 block text-center font-mono">WAIST</span>
                             <input type="number" step="0.25" placeholder="0" value={formData.waist === '0' ? '' : formData.waist} onChange={e => setFormData({ ...formData, waist: e.target.value })} className="p-2 text-center rounded bg-slate-900 border border-slate-800 text-slate-100 text-xs w-full" />
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-slate-500 block text-center font-mono">HIP</span>
+                            <input type="number" step="0.25" placeholder="0" value={formData.hip === '0' ? '' : formData.hip} onChange={e => setFormData({ ...formData, hip: e.target.value })} className="p-2 text-center rounded bg-slate-900 border border-slate-800 text-slate-100 text-xs w-full" />
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-slate-500 block text-center font-mono">LENGTH</span>
+                            <input type="number" step="0.25" placeholder="0" value={formData.length === '0' ? '' : formData.length} onChange={e => setFormData({ ...formData, length: e.target.value })} className="p-2 text-center rounded bg-slate-900 border border-slate-800 text-slate-100 text-xs w-full" />
                           </div>
                         </div>
                       </div>
 
                       <div className="flex gap-2">
                         <button type="button" onClick={() => setIntakeStep(2)} className="w-1/3 py-2.5 bg-slate-800 text-slate-300 font-bold text-xs rounded-lg">&larr; Back</button>
-                        <button type="button" onClick={() => setIntakeStep(4)} className="w-2/3 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-lg uppercase">Next: Payment &rarr;</button>
+                        <button type="button" onClick={() => setIntakeStep(4)} className="w-2/3 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-lg uppercase">Next: Financials &rarr;</button>
                       </div>
                     </div>
                   )}
 
-                  {/* STEP 4: FINANCIALS */}
+                  {/* STEP 4: FINANCIALS & PAYMENT METHOD */}
                   {intakeStep === 4 && (
                     <div className="space-y-3">
-                      <span className="text-xs font-bold text-slate-300 block">Step 4: Financial Terms</span>
+                      <span className="text-xs font-bold text-slate-300 block">Step 4: Payment Terms</span>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Total (KES)</label>
@@ -665,6 +779,22 @@ export default function LiveControlTower() {
                         </div>
                       </div>
 
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Payment Method</label>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {(['M-Pesa', 'Cash', 'Bank Transfer'] as const).map((method) => (
+                            <button
+                              type="button"
+                              key={method}
+                              onClick={() => setFormData({ ...formData, paymentMethod: method })}
+                              className={`py-2 px-1 rounded text-[11px] font-bold border transition ${formData.paymentMethod === method ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}`}
+                            >
+                              {method}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 flex justify-between items-center">
                         <span className="text-[10px] font-bold uppercase text-slate-400">Balance Remaining</span>
                         <span className="text-xs font-black font-mono text-emerald-400">KES {balanceRemaining.toLocaleString()}</span>
@@ -677,17 +807,48 @@ export default function LiveControlTower() {
                     </div>
                   )}
 
-                  {/* STEP 5: DELIVERY & CONFIRM */}
+                  {/* STEP 5: DELIVERY, PRIORITY & CONFIRMATION */}
                   {intakeStep === 5 && (
                     <div className="space-y-3">
-                      <span className="text-xs font-bold text-slate-300 block">Step 5: Target Delivery Date</span>
-                      <input
-                        type="date"
-                        required
-                        value={formData.dueDate}
-                        onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                        className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 text-sm"
-                      />
+                      <span className="text-xs font-bold text-slate-300 block">Step 5: Delivery & Priority</span>
+                      
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Target Due Date</label>
+                        <input
+                          type="date"
+                          required
+                          value={formData.dueDate}
+                          onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                          className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Production Priority</label>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {(['Standard', 'Express', 'Urgent'] as const).map((p) => (
+                            <button
+                              type="button"
+                              key={p}
+                              onClick={() => setFormData({ ...formData, priority: p })}
+                              className={`py-2 px-1 rounded text-[11px] font-bold border transition ${formData.priority === p ? 'bg-amber-600 border-amber-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}`}
+                            >
+                              {p}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Special Instructions / Notes</label>
+                        <textarea
+                          rows={2}
+                          placeholder="Specific tailoring requirements..."
+                          value={formData.notes}
+                          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                          className="w-full p-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:border-blue-500"
+                        />
+                      </div>
 
                       <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 text-xs space-y-1 text-slate-300">
                         <div><strong className="text-slate-400">Client:</strong> {formData.customerName}</div>
