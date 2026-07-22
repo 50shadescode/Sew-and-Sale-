@@ -25,7 +25,7 @@ interface OrderType {
   fabricMetersUsed?: number;
   patternPiecesCut?: number;
   assignedTailor?: string | null;
-  qcPassedBy?: string | null; // 👈 Inspector tracking (Simon / Safari)
+  qcPassedBy?: string | null;
 }
 
 interface InventoryType {
@@ -47,7 +47,6 @@ const STAGES = [
   'Dispatched'
 ];
 
-// 👥 Workshop Team Roster by Department
 const CUTTERS = ['Joseph'];
 const TAILORS = ['Winnie', 'Fridah', 'Sammy', 'Leah'];
 const FINISHERS = ['Simon', 'Safari'];
@@ -55,10 +54,14 @@ const SALES_TEAM = ['Faith', 'Phylis'];
 
 export default function LiveControlTower() {
   const [view, setView] = useState<'desktop' | 'mobile'>('desktop');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'workshop' | 'inventory'>('dashboard');
   const [orders, setOrders] = useState<OrderType[]>([]);
   const [selectedOrderForMobile, setSelectedOrderForMobile] = useState<OrderType | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // 🧙‍♂️ 5-Step Intake Form State
+  const [intakeStep, setIntakeStep] = useState<number>(1);
 
   // 📱 Mobile View Quick Department Filter State
   const [mobileDepartmentFilter, setMobileDepartmentFilter] = useState<string>('ALL');
@@ -81,14 +84,14 @@ export default function LiveControlTower() {
     customerName: '',
     customerPhone: '',
     salesRep: SALES_TEAM[0],
-    garmentType: 'Suit',
+    garmentType: 'Suit' as 'Suit' | 'Dress' | 'Shirt' | 'Native',
     fabricSelection: '',
     fabricQuantityRequired: '2.5',
     neck: '0',
     chest: '0',
     waist: '0',
-    priceTotal: '',
-    depositPaid: '',
+    priceTotal: '15000',
+    depositPaid: '5000',
     dueDate: '',
   });
 
@@ -98,13 +101,17 @@ export default function LiveControlTower() {
   const totalOutstanding = orders.reduce((acc, curr) => acc + (curr.balanceRemaining || 0), 0);
   const lowStockAlerts = fullInventory.filter(item => item.stockLevel <= item.minimumLevel);
 
-  // Auto-calculated Financial Accounting Engine
+  // Operational Questions Engine Data
+  const todayStr = new Date().toISOString().split('T')[0];
+  const dueTodayOrders = orders.filter(o => o.dueDate && o.dueDate.startsWith(todayStr));
+  const awaitingPickup = orders.filter(o => o.status === 'QC');
+
+  // Auto-calculated Balance
   const balanceRemaining = Math.max(
     0, 
     (Number(formData.priceTotal) || 0) - (Number(formData.depositPaid) || 0)
   );
 
-  // Fetch all orders from the live MongoDB backend
   const fetchOrders = async () => {
     try {
       const res = await fetch('/api/orders');
@@ -117,7 +124,6 @@ export default function LiveControlTower() {
     }
   };
 
-  // Fetch live inventory items from MongoDB
   const fetchInventory = async () => {
     try {
       const res = await fetch('/api/inventory');
@@ -140,7 +146,30 @@ export default function LiveControlTower() {
     fetchInventory();
   }, []);
 
-  // Update Inventory Stock directly from Control Panel
+  // 💡 Smart Defaults Engine for Garment Selection
+  const handleGarmentChange = (type: 'Suit' | 'Dress' | 'Shirt' | 'Native') => {
+    let defaultMeters = '2.5';
+    let defaultPrice = '15000';
+
+    if (type === 'Shirt') {
+      defaultMeters = '1.5';
+      defaultPrice = '4500';
+    } else if (type === 'Dress') {
+      defaultMeters = '3.0';
+      defaultPrice = '8500';
+    } else if (type === 'Native') {
+      defaultMeters = '2.5';
+      defaultPrice = '8500';
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      garmentType: type,
+      fabricQuantityRequired: defaultMeters,
+      priceTotal: defaultPrice,
+    }));
+  };
+
   const handleUpdateStock = async (name: string) => {
     try {
       const res = await fetch('/api/inventory', {
@@ -160,7 +189,6 @@ export default function LiveControlTower() {
     }
   };
 
-  // Submit New Order (Stage 1: Intake) -> Live DB
   const handleIntakeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -195,6 +223,7 @@ export default function LiveControlTower() {
       } else {
         fetchOrders();
         fetchInventory();
+        setIntakeStep(1);
         setFormData({ 
           customerName: '', 
           customerPhone: '', 
@@ -205,8 +234,8 @@ export default function LiveControlTower() {
           neck: '0',
           chest: '0',
           waist: '0',
-          priceTotal: '', 
-          depositPaid: '', 
+          priceTotal: '15000', 
+          depositPaid: '5000', 
           dueDate: '' 
         });
       }
@@ -218,7 +247,6 @@ export default function LiveControlTower() {
     }
   };
 
-  // Move order status forward -> Live DB Patch
   const advanceOrder = async (order: OrderType) => {
     const currentIndex = STAGES.indexOf(order.status);
     if (currentIndex >= STAGES.length - 1) return;
@@ -246,7 +274,6 @@ export default function LiveControlTower() {
     }
   };
 
-  // 🔍 Finishing Dept Action: Pass QC Inspection (Simon & Safari)
   const passQCOrder = async (orderId: string, finisherName: string) => {
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
@@ -270,7 +297,6 @@ export default function LiveControlTower() {
     }
   };
 
-  // Submit metrics from mobile workshop view -> Live DB Patch
   const submitMobileMetrics = async () => {
     if (!selectedOrderForMobile) return;
 
@@ -297,7 +323,6 @@ export default function LiveControlTower() {
     }
   };
 
-  // Assign tailor from mobile workshop matrix -> Live DB Patch
   const submitTailorAssignment = async () => {
     if (!selectedOrderForMobile || !selectedTailor) return;
 
@@ -324,7 +349,6 @@ export default function LiveControlTower() {
     }
   };
 
-  // 📱 Filter Active Mobile Orders based on Selected Department Tab
   const activeMobileOrders = orders
     .filter((o) => o.status !== 'Dispatched')
     .filter((o) => {
@@ -336,11 +360,10 @@ export default function LiveControlTower() {
     });
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-emerald-500 selection:text-slate-950">
-      {/* 🧭 Header Navigation Bar */}
-      <nav className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-6 py-3 flex justify-between items-center sticky top-0 z-50 shadow-md">
-        <div className="flex items-center space-x-3.5">
-          {/* 🖼️ Official Logo Badge */}
+    <main className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-blue-500 selection:text-white pb-12">
+      {/* 🧭 Human-Centric Main Navigation Header */}
+      <nav className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex flex-col md:flex-row justify-between items-center sticky top-0 z-50 shadow-lg gap-4">
+        <div className="flex items-center space-x-4">
           <div className="relative w-12 h-12 overflow-hidden rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center shrink-0 shadow-inner">
             <Image
               src="/logo.jpg"
@@ -353,223 +376,350 @@ export default function LiveControlTower() {
           </div>
 
           <div>
-            <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full tracking-wider uppercase">
-              LIVE WORKSPACE
+            <span className="text-[10px] font-black text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full tracking-wider uppercase">
+              SEW & SELL UNIFORMS
             </span>
-            <p className="text-xs font-semibold text-slate-400 mt-0.5 tracking-wide">
+            <h1 className="text-xl font-black text-slate-100 mt-0.5 tracking-tight">
               Management Portal
-            </p>
+            </h1>
           </div>
         </div>
 
-        <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 shadow-inner">
+        {/* Intuitive Navigation Bar Tabs */}
+        <div className="flex bg-slate-950 p-1.5 rounded-xl border border-slate-800 shadow-inner text-sm">
           <button
-            onClick={() => { setView('desktop'); setErrorMsg(null); }}
-            className={`px-4 py-2 rounded-lg text-xs font-extrabold transition-all duration-200 flex items-center gap-1.5 ${view === 'desktop' ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20' : 'text-slate-400 hover:text-slate-200'}`}
+            onClick={() => { setActiveTab('dashboard'); setView('desktop'); }}
+            className={`px-4 py-2 rounded-lg font-bold transition-all duration-200 ${activeTab === 'dashboard' && view === 'desktop' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
           >
-            <span>💻</span> Control Tower
+            Dashboard
           </button>
           <button
-            onClick={() => { setView('mobile'); setErrorMsg(null); }}
-            className={`px-4 py-2 rounded-lg text-xs font-extrabold transition-all duration-200 flex items-center gap-1.5 ${view === 'mobile' ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20' : 'text-slate-400 hover:text-slate-200'}`}
+            onClick={() => { setActiveTab('orders'); setView('desktop'); }}
+            className={`px-4 py-2 rounded-lg font-bold transition-all duration-200 ${activeTab === 'orders' && view === 'desktop' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
           >
-            <span>📱</span> Workshop Floor
+            Orders ({orders.length})
+          </button>
+          <button
+            onClick={() => { setActiveTab('workshop'); setView('mobile'); }}
+            className={`px-4 py-2 rounded-lg font-bold transition-all duration-200 ${view === 'mobile' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+          >
+            📱 Workshop Floor
+          </button>
+          <button
+            onClick={() => { setActiveTab('inventory'); setView('desktop'); }}
+            className={`px-4 py-2 rounded-lg font-bold transition-all duration-200 ${activeTab === 'inventory' && view === 'desktop' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+          >
+            Inventory
           </button>
         </div>
       </nav>
 
-      <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
-        {/* 📊 Top Financial & Warehouse Metric Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-slate-900/90 border border-slate-800 border-t-2 border-t-slate-500 p-4 rounded-xl shadow-lg hover:border-slate-700 transition-all">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Gross Revenue Pipeline</span>
-            <span className="text-2xl font-black text-slate-100 font-mono tracking-tight">KES {totalRevenue.toLocaleString()}</span>
-          </div>
+      <div className="p-6 space-y-8 max-w-[1600px] mx-auto">
 
-          <div className="bg-slate-900/90 border border-slate-800 border-t-2 border-t-emerald-500 p-4 rounded-xl shadow-lg hover:border-slate-700 transition-all">
-            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest block mb-1">Collected Deposits</span>
-            <span className="text-2xl font-black text-emerald-400 font-mono tracking-tight">KES {totalDeposits.toLocaleString()}</span>
-          </div>
+        {/* 🌅 Morning Executive Briefing Banner (Answers Key Questions) */}
+        {view === 'desktop' && (
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+            <div className="flex justify-between items-start flex-wrap gap-2 border-b border-slate-800 pb-3">
+              <div>
+                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest block mb-0.5">DAILY BRIEFING</span>
+                <h2 className="text-2xl font-black text-slate-100">Good Morning, {formData.salesRep} 👋</h2>
+              </div>
+              <span className="text-xs font-mono font-bold text-slate-400 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>
+            </div>
 
-          <div className="bg-slate-900/90 border border-slate-800 border-t-2 border-t-amber-500 p-4 rounded-xl shadow-lg hover:border-slate-700 transition-all">
-            <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest block mb-1">Outstanding Balances</span>
-            <span className="text-2xl font-black text-amber-400 font-mono tracking-tight">KES {totalOutstanding.toLocaleString()}</span>
-          </div>
+            {/* Answer Engine Badges */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center gap-3">
+                <span className="text-2xl">💰</span>
+                <div>
+                  <span className="text-xs text-slate-400 font-medium block">Did we make money today?</span>
+                  <span className="text-lg font-black text-emerald-400 font-mono">KES {totalDeposits.toLocaleString()}</span>
+                </div>
+              </div>
 
-          <div className="bg-slate-900/90 border border-slate-800 border-t-2 border-t-rose-500 p-4 rounded-xl shadow-lg hover:border-slate-700 transition-all">
-            <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest block mb-1">Low-Stock Alerts</span>
-            <div className="flex items-center space-x-2.5">
-              <span className="text-2xl font-black text-rose-400 font-mono tracking-tight">{lowStockAlerts.length} Items</span>
-              {lowStockAlerts.length > 0 && <span className="animate-ping w-2 h-2 rounded-full bg-rose-500 inline-block"></span>}
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center gap-3">
+                <span className="text-2xl">⏳</span>
+                <div>
+                  <span className="text-xs text-slate-400 font-medium block">Which orders are due today?</span>
+                  <span className="text-lg font-black text-amber-400 font-mono">{dueTodayOrders.length} Due Today</span>
+                </div>
+              </div>
+
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center gap-3">
+                <span className="text-2xl">🛍️</span>
+                <div>
+                  <span className="text-xs text-slate-400 font-medium block">Customers Awaiting Pickup?</span>
+                  <span className="text-lg font-black text-blue-400 font-mono">{awaitingPickup.length} Ready in QC</span>
+                </div>
+              </div>
+
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center gap-3">
+                <span className="text-2xl">⚠️</span>
+                <div>
+                  <span className="text-xs text-slate-400 font-medium block">Running out of fabric?</span>
+                  <span className={`text-lg font-black font-mono ${lowStockAlerts.length > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                    {lowStockAlerts.length > 0 ? `${lowStockAlerts.length} Items Low` : 'Stock Healthy'}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* 📊 High-Contrast Semantic Metric KPI Cards */}
+        {view === 'desktop' && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-slate-900 border border-slate-800 border-t-4 border-t-blue-500 p-4 rounded-xl shadow-lg">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Gross Revenue Pipeline</span>
+              <span className="text-2xl font-black text-slate-100 font-mono">KES {totalRevenue.toLocaleString()}</span>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 border-t-4 border-t-emerald-500 p-4 rounded-xl shadow-lg">
+              <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest block mb-1">Collected Deposits</span>
+              <span className="text-2xl font-black text-emerald-400 font-mono">KES {totalDeposits.toLocaleString()}</span>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 border-t-4 border-t-amber-500 p-4 rounded-xl shadow-lg">
+              <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest block mb-1">Outstanding Unpaid</span>
+              <span className="text-2xl font-black text-amber-400 font-mono">KES {totalOutstanding.toLocaleString()}</span>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 border-t-4 border-t-rose-500 p-4 rounded-xl shadow-lg">
+              <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest block mb-1">Low-Stock Alerts</span>
+              <span className="text-2xl font-black text-rose-400 font-mono">{lowStockAlerts.length} Materials</span>
+            </div>
+          </div>
+        )}
 
         {errorMsg && (
           <div className="p-4 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-xs font-semibold shadow-md flex items-center gap-2">
-             <span>⚠️</span> <span>Stock Interceptor Rule Alert: {errorMsg}</span>
+             <span>⚠️</span> <span>Rule Alert: {errorMsg}</span>
           </div>
         )}
 
         {view === 'desktop' && (
           <div className="space-y-8">
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-              {/* 📝 Left-Hand High-Contrast Intake Form */}
-              <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-xl shadow-xl h-fit">
-                <div className="border-b border-slate-800 pb-3 mb-4">
-                  <h2 className="text-lg font-black text-slate-100 tracking-tight">1. Intake Register</h2>
-                  <p className="text-xs text-slate-400">Add new custom orders to the workshop pipeline</p>
+
+              {/* 🧙‍♂️ Step-by-Step Interactive Intake Wizard */}
+              <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl h-fit">
+                <div className="border-b border-slate-800 pb-3 mb-4 flex justify-between items-center">
+                  <div>
+                    <h2 className="text-lg font-black text-slate-100">Create Order</h2>
+                    <p className="text-xs text-slate-400">Step {intakeStep} of 5</p>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded">
+                    Wizard Mode
+                  </span>
+                </div>
+
+                {/* Wizard Progress Indicator */}
+                <div className="flex space-x-1 mb-6">
+                  {[1, 2, 3, 4, 5].map((step) => (
+                    <div
+                      key={step}
+                      className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${intakeStep >= step ? 'bg-blue-500' : 'bg-slate-800'}`}
+                    />
+                  ))}
                 </div>
 
                 <form onSubmit={handleIntakeSubmit} className="space-y-4">
-                  {/* Sales Representative */}
-                  <div>
-                    <label className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1.5">Sales Representative</label>
-                    <select
-                      value={formData.salesRep}
-                      onChange={(e) => setFormData({ ...formData, salesRep: e.target.value })}
-                      className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
-                    >
-                      {SALES_TEAM.map((rep) => (
-                        <option key={rep} value={rep}>{rep} (Sales)</option>
-                      ))}
-                    </select>
-                  </div>
 
-                  {/* Customer Information Inputs */}
-                  <div>
-                    <label className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1.5">Customer Information</label>
-                    <div className="space-y-2">
+                  {/* STEP 1: CUSTOMER CONTACT */}
+                  {intakeStep === 1 && (
+                    <div className="space-y-3">
+                      <span className="text-xs font-bold text-slate-300 block">Step 1: Customer Contact</span>
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Sales Rep</label>
+                        <select
+                          value={formData.salesRep}
+                          onChange={(e) => setFormData({ ...formData, salesRep: e.target.value })}
+                          className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:border-blue-500"
+                        >
+                          {SALES_TEAM.map((rep) => (
+                            <option key={rep} value={rep}>{rep} (Sales)</option>
+                          ))}
+                        </select>
+                      </div>
                       <input
                         type="text"
                         required
                         placeholder="Customer Full Name"
                         value={formData.customerName}
                         onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                        className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 placeholder:text-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                        className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 placeholder:text-slate-500 text-sm focus:border-blue-500"
                       />
                       <input
                         type="text"
-                        placeholder="Customer Phone (e.g. 0712...)"
+                        placeholder="Phone (e.g. 0712...)"
                         value={formData.customerPhone}
                         onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
-                        className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 placeholder:text-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                        className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 placeholder:text-slate-500 text-sm focus:border-blue-500"
                       />
-                    </div>
-                  </div>
-                  
-                  {/* Garment & Fabric Selects */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">Garment</label>
-                      <select
-                        value={formData.garmentType}
-                        onChange={(e) => setFormData({ ...formData, garmentType: e.target.value as any })}
-                        className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                      <button
+                        type="button"
+                        disabled={!formData.customerName}
+                        onClick={() => setIntakeStep(2)}
+                        className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg uppercase tracking-wider transition disabled:opacity-50"
                       >
-                        <option value="Suit">Suit</option>
-                        <option value="Dress">Dress</option>
-                        <option value="Shirt">Shirt</option>
-                        <option value="Native">Native</option>
-                      </select>
+                        Next: Garment & Fabric →
+                      </button>
                     </div>
-                    
-                    <div>
-                      <label className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">Fabric</label>
-                      <select
-                        value={formData.fabricSelection}
-                        onChange={(e) => setFormData({ ...formData, fabricSelection: e.target.value })}
-                        className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
-                      >
-                        {fabrics.map((f) => (
-                          <option key={f._id} value={f.name}>{f.name} ({f.stockLevel}m)</option>
-                        ))}
-                      </select>
+                  )}
+
+                  {/* STEP 2: GARMENT & FABRIC (WITH SMART DEFAULTS) */}
+                  {intakeStep === 2 && (
+                    <div className="space-y-3">
+                      <span className="text-xs font-bold text-slate-300 block">Step 2: Garment & Fabric Selection</span>
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Garment Type</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(['Suit', 'Dress', 'Shirt', 'Native'] as const).map((type) => (
+                            <button
+                              type="button"
+                              key={type}
+                              onClick={() => handleGarmentChange(type)}
+                              className={`p-2 rounded-lg text-xs font-bold border transition ${formData.garmentType === type ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}`}
+                            >
+                              {type}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Fabric Selection</label>
+                        <select
+                          value={formData.fabricSelection}
+                          onChange={(e) => setFormData({ ...formData, fabricSelection: e.target.value })}
+                          className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 text-sm"
+                        >
+                          {fabrics.map((f) => (
+                            <option key={f._id} value={f.name}>{f.name} ({f.stockLevel}m in stock)</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Meters Required</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          required
+                          value={formData.fabricQuantityRequired}
+                          onChange={(e) => setFormData({ ...formData, fabricQuantityRequired: e.target.value })}
+                          className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 text-sm"
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => setIntakeStep(1)} className="w-1/3 py-2.5 bg-slate-800 text-slate-300 font-bold text-xs rounded-lg">← Back</button>
+                        <button type="button" onClick={() => setIntakeStep(3)} className="w-2/3 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-lg uppercase">Next: Measurements →</button>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  <div>
-                    <label className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1.5">Meters Required</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0.1"
-                      required
-                      placeholder="Yardage Demand"
-                      value={formData.fabricQuantityRequired}
-                      onChange={(e) => setFormData({ ...formData, fabricQuantityRequired: e.target.value })}
-                      className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 placeholder:text-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
-                    />
-                  </div>
+                  {/* STEP 3: MEASUREMENTS */}
+                  {intakeStep === 3 && (
+                    <div className="space-y-3">
+                      <span className="text-xs font-bold text-slate-300 block">Step 3: Blueprint Metrics (Inches)</span>
+                      <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-3">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Upper Body</span>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <span className="text-[9px] text-slate-500 block text-center">NECK</span>
+                            <input type="number" step="0.25" placeholder="0" value={formData.neck === '0' ? '' : formData.neck} onChange={e => setFormData({ ...formData, neck: e.target.value })} className="p-2 text-center rounded bg-slate-900 border border-slate-800 text-slate-100 text-xs w-full" />
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-slate-500 block text-center">CHEST</span>
+                            <input type="number" step="0.25" placeholder="0" value={formData.chest === '0' ? '' : formData.chest} onChange={e => setFormData({ ...formData, chest: e.target.value })} className="p-2 text-center rounded bg-slate-900 border border-slate-800 text-slate-100 text-xs w-full" />
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-slate-500 block text-center">WAIST</span>
+                            <input type="number" step="0.25" placeholder="0" value={formData.waist === '0' ? '' : formData.waist} onChange={e => setFormData({ ...formData, waist: e.target.value })} className="p-2 text-center rounded bg-slate-900 border border-slate-800 text-slate-100 text-xs w-full" />
+                          </div>
+                        </div>
+                      </div>
 
-                  {/* 📐 High-Contrast Blueprint Metrics Widget */}
-                  <div className="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800 space-y-2">
-                    <span className="block text-[10px] uppercase font-black tracking-widest text-slate-400">Blueprint Metrics (Inches)</span>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <span className="text-[9px] text-slate-500 block text-center font-bold mb-0.5">NECK</span>
-                        <input type="number" step="0.25" placeholder="0" value={formData.neck === '0' ? '' : formData.neck} onChange={e => setFormData({ ...formData, neck: e.target.value })} className="p-2 text-center rounded-md bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none w-full" />
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-slate-500 block text-center font-bold mb-0.5">CHEST</span>
-                        <input type="number" step="0.25" placeholder="0" value={formData.chest === '0' ? '' : formData.chest} onChange={e => setFormData({ ...formData, chest: e.target.value })} className="p-2 text-center rounded-md bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none w-full" />
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-slate-500 block text-center font-bold mb-0.5">WAIST</span>
-                        <input type="number" step="0.25" placeholder="0" value={formData.waist === '0' ? '' : formData.waist} onChange={e => setFormData({ ...formData, waist: e.target.value })} className="p-2 text-center rounded-md bg-slate-900 border border-slate-800 text-slate-100 text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none w-full" />
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => setIntakeStep(2)} className="w-1/3 py-2.5 bg-slate-800 text-slate-300 font-bold text-xs rounded-lg">← Back</button>
+                        <button type="button" onClick={() => setIntakeStep(4)} className="w-2/3 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-lg uppercase">Next: Pricing →</button>
                       </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Financial Fields */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">Total (KES)</label>
+                  {/* STEP 4: FINANCIALS */}
+                  {intakeStep === 4 && (
+                    <div className="space-y-3">
+                      <span className="text-xs font-bold text-slate-300 block">Step 4: Payment Terms</span>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Total (KES)</label>
+                          <input
+                            type="number"
+                            required
+                            value={formData.priceTotal}
+                            onChange={(e) => setFormData({ ...formData, priceTotal: e.target.value })}
+                            className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Deposit (KES)</label>
+                          <input
+                            type="number"
+                            required
+                            value={formData.depositPaid}
+                            onChange={(e) => setFormData({ ...formData, depositPaid: e.target.value })}
+                            className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 flex justify-between items-center">
+                        <span className="text-[10px] font-bold uppercase text-slate-400">Balance Unpaid</span>
+                        <span className="text-xs font-black font-mono text-emerald-400">KES {balanceRemaining.toLocaleString()}</span>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => setIntakeStep(3)} className="w-1/3 py-2.5 bg-slate-800 text-slate-300 font-bold text-xs rounded-lg">← Back</button>
+                        <button type="button" onClick={() => setIntakeStep(5)} className="w-2/3 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-lg uppercase">Next: Delivery →</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 5: DELIVERY & CONFIRM */}
+                  {intakeStep === 5 && (
+                    <div className="space-y-3">
+                      <span className="text-xs font-bold text-slate-300 block">Step 5: Target Delivery Date</span>
                       <input
-                        type="number"
+                        type="date"
                         required
-                        placeholder="Cost"
-                        value={formData.priceTotal}
-                        onChange={(e) => setFormData({ ...formData, priceTotal: e.target.value })}
-                        className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 placeholder:text-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                        value={formData.dueDate}
+                        onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                        className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 text-sm"
                       />
+
+                      <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 text-xs space-y-1 text-slate-300">
+                        <div><strong className="text-slate-400">Client:</strong> {formData.customerName}</div>
+                        <div><strong className="text-slate-400">Garment:</strong> {formData.garmentType} ({formData.fabricSelection})</div>
+                        <div><strong className="text-slate-400">Total Price:</strong> KES {formData.priceTotal}</div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => setIntakeStep(4)} className="w-1/3 py-2.5 bg-slate-800 text-slate-300 font-bold text-xs rounded-lg">← Back</button>
+                        <button
+                          type="submit"
+                          disabled={loading}
+                          className="w-2/3 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-lg uppercase tracking-wider transition shadow-md shadow-emerald-500/20"
+                        >
+                          {loading ? 'Validating...' : 'Confirm Order ✓'}
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">Deposit (KES)</label>
-                      <input
-                        type="number"
-                        required
-                        placeholder="Paid"
-                        value={formData.depositPaid}
-                        onChange={(e) => setFormData({ ...formData, depositPaid: e.target.value })}
-                        className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 placeholder:text-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
-                      />
-                    </div>
-                  </div>
+                  )}
 
-                  <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 flex justify-between items-center">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Balance Unpaid</span>
-                    <span className="text-xs font-black font-mono text-emerald-400">KES {balanceRemaining.toLocaleString()}</span>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1.5">Target Due Date</label>
-                    <input
-                      type="date"
-                      required
-                      value={formData.dueDate}
-                      onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                      className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs tracking-wider rounded-lg uppercase transition-all duration-200 shadow-md shadow-emerald-500/20 active:scale-[0.98]"
-                  >
-                    {loading ? 'Validating Stock...' : 'Confirm Intake Booking'}
-                  </button>
                 </form>
               </div>
 
@@ -593,13 +743,13 @@ export default function LiveControlTower() {
                           {stageOrders.map((order) => (
                             <div
                               key={order._id}
-                              className="bg-slate-900 border border-slate-800 hover:border-emerald-500/40 p-4 rounded-xl hover:-translate-y-0.5 transition-all duration-200 shadow-md group"
+                              className="bg-slate-900 border border-slate-800 hover:border-blue-500/40 p-4 rounded-xl hover:-translate-y-0.5 transition-all duration-200 shadow-md group"
                             >
                               <div className="flex justify-between items-start mb-2">
-                                <span className="text-[10px] font-black text-emerald-400 tracking-wider bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                <span className="text-[10px] font-black text-blue-400 tracking-wider bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">
                                   {order.orderId}
                                 </span>
-                                <span className="text-[10px] font-medium text-slate-400">
+                                <span className="text-[10px] font-medium text-amber-400">
                                   Due {new Date(order.dueDate).toLocaleDateString()}
                                 </span>
                               </div>
@@ -607,9 +757,9 @@ export default function LiveControlTower() {
                               <p className="text-xs text-slate-400 mt-0.5">{order.garmentType} • <span className="text-slate-300">{order.fabricSelection}</span> ({order.fabricQuantityRequired}m)</p>
 
                               <div className="mt-2.5 grid grid-cols-3 gap-1 bg-slate-950/80 p-2 rounded-lg text-[10px] font-mono text-center text-slate-300 border border-slate-850">
-                                <div>N: <span className="text-emerald-400 font-bold">{order.measurements?.neck || 0}"</span></div>
-                                <div>C: <span className="text-emerald-400 font-bold">{order.measurements?.chest || 0}"</span></div>
-                                <div>W: <span className="text-emerald-400 font-bold">{order.measurements?.waist || 0}"</span></div>
+                                <div>N: <span className="text-blue-400 font-bold">{order.measurements?.neck || 0}"</span></div>
+                                <div>C: <span className="text-blue-400 font-bold">{order.measurements?.chest || 0}"</span></div>
+                                <div>W: <span className="text-blue-400 font-bold">{order.measurements?.waist || 0}"</span></div>
                               </div>
 
                               <div className="mt-2.5 pt-2 border-t border-slate-800 text-[10px] text-slate-400 space-y-0.5">
@@ -646,7 +796,7 @@ export default function LiveControlTower() {
                                 ) : stage !== 'Dispatched' ? (
                                   <button
                                     onClick={() => advanceOrder(order)}
-                                    className="text-[10px] font-extrabold text-emerald-400 hover:text-slate-950 border border-emerald-500/30 hover:bg-emerald-400 px-2.5 py-1 rounded-md transition-all shadow-sm"
+                                    className="text-[10px] font-extrabold text-blue-400 hover:text-white border border-blue-500/30 hover:bg-blue-600 px-2.5 py-1 rounded-md transition-all shadow-sm"
                                   >
                                     Move Next →
                                   </button>
@@ -667,60 +817,54 @@ export default function LiveControlTower() {
               </div>
             </div>
 
-            {/* 📦 Refactored Warehouse Inventory Manager */}
-            <div className="bg-slate-900/90 border border-slate-800 p-6 rounded-2xl shadow-xl">
-              <h2 className="text-lg font-black text-slate-100 mb-4 tracking-tight">📦 Warehouse Stock & Inventory Manager</h2>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] tracking-wider border-b border-slate-800">
-                      <th className="p-3.5">Material Name</th>
-                      <th className="p-3.5">Category</th>
-                      <th className="p-3.5">Current Stock</th>
-                      <th className="p-3.5">Min Safety Level</th>
-                      <th className="p-3.5 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60">
-                    {fullInventory.map((item) => (
-                      <tr key={item._id} className="hover:bg-slate-850/40 transition-colors">
-                        <td className="p-3.5 font-bold text-slate-200">{item.name}</td>
-                        <td className="p-3.5">
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-slate-800 text-slate-300 border border-slate-700/50">
-                            {item.category}
-                          </span>
-                        </td>
-                        <td className="p-3.5 font-mono">
-                          {editingItem === item._id ? (
-                            <input type="number" value={newStock} onChange={e => setNewStock(parseFloat(e.target.value))} className="w-24 p-1.5 bg-slate-950 border border-slate-700 text-white rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500" />
-                          ) : (
-                            <span className={item.stockLevel <= item.minimumLevel ? "text-rose-400 font-bold bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded" : "text-slate-300 font-semibold"}>
-                              {item.stockLevel} {item.unit}
-                              {item.stockLevel <= item.minimumLevel && " ⚠️ LOW"}
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-3.5 font-mono text-slate-400">
-                          {editingItem === item._id ? (
-                            <input type="number" value={newMin} onChange={e => setNewMin(parseFloat(e.target.value))} className="w-24 p-1.5 bg-slate-950 border border-slate-700 text-white rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500" />
-                          ) : (
-                            <span>{item.minimumLevel} {item.unit}</span>
-                          )}
-                        </td>
-                        <td className="p-3.5 text-right">
-                          {editingItem === item._id ? (
-                            <div className="space-x-2">
-                              <button onClick={() => handleUpdateStock(item.name)} className="bg-emerald-500 text-slate-950 px-3 py-1 rounded-md font-extrabold hover:bg-emerald-400 transition">Save</button>
-                              <button onClick={() => setEditingItem(null)} className="bg-slate-800 text-slate-300 px-3 py-1 rounded-md font-bold hover:bg-slate-700 transition">Cancel</button>
-                            </div>
-                          ) : (
-                            <button onClick={() => { setEditingItem(item._id); setNewStock(item.stockLevel); setNewMin(item.minimumLevel); }} className="text-emerald-400 hover:text-emerald-300 font-bold hover:underline">Adjust Stock</button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {/* 📦 Refactored Warehouse Inventory Manager with Visual Progress Meters */}
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+              <h2 className="text-lg font-black text-slate-100 tracking-tight">📦 Material & Inventory Health</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {fullInventory.map((item) => {
+                  const isLow = item.stockLevel <= item.minimumLevel;
+                  const percentage = Math.min(100, Math.round((item.stockLevel / (item.minimumLevel * 2)) * 100));
+
+                  return (
+                    <div key={item._id} className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-bold text-slate-200 text-sm">{item.name}</h4>
+                          <span className="text-[10px] font-mono text-slate-400">{item.category}</span>
+                        </div>
+                        <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${isLow ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                          {item.stockLevel} {item.unit} {isLow && '⚠️ LOW'}
+                        </span>
+                      </div>
+
+                      {/* Visual Progress Bar Meter */}
+                      <div className="space-y-1 pt-1">
+                        <div className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                          <div
+                            className={`h-full transition-all duration-500 ${isLow ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                          <span>Safety Threshold: {item.minimumLevel} {item.unit}</span>
+                          <span>{percentage}% Stocked</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 flex justify-end">
+                        {editingItem === item._id ? (
+                          <div className="flex space-x-2">
+                            <input type="number" value={newStock} onChange={e => setNewStock(parseFloat(e.target.value))} className="w-20 p-1 bg-slate-900 border border-slate-700 text-white text-xs rounded" />
+                            <button onClick={() => handleUpdateStock(item.name)} className="bg-emerald-500 text-slate-950 px-2.5 py-1 rounded text-xs font-bold">Save</button>
+                            <button onClick={() => setEditingItem(null)} className="bg-slate-800 text-slate-300 px-2.5 py-1 rounded text-xs font-bold">Cancel</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => { setEditingItem(item._id); setNewStock(item.stockLevel); setNewMin(item.minimumLevel); }} className="text-xs text-blue-400 hover:text-blue-300 font-bold">Adjust Stock</button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -731,7 +875,7 @@ export default function LiveControlTower() {
           <div className="max-w-md mx-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 min-h-[80vh] flex flex-col justify-between">
             <div>
               <div className="border-b border-slate-800 pb-3 mb-4">
-                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
                   Workshop Floor View
                 </span>
                 <h2 className="text-xl font-black text-slate-100 mt-1.5">📱 Mobile Tracker Matrix</h2>
@@ -739,33 +883,33 @@ export default function LiveControlTower() {
 
               {!selectedOrderForMobile ? (
                 <div>
-                  {/* ⚡ Mobile Quick Filter Tabs */}
+                  {/* Quick Department Filter Tabs */}
                   <div className="mb-4 flex space-x-1 bg-slate-950 p-1.5 rounded-xl border border-slate-800 overflow-x-auto text-[11px]">
                     <button
                       type="button"
                       onClick={() => setMobileDepartmentFilter('ALL')}
-                      className={`px-3 py-2 rounded-lg font-black whitespace-nowrap transition-all ${mobileDepartmentFilter === 'ALL' ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+                      className={`px-3 py-2 rounded-lg font-black whitespace-nowrap transition-all ${mobileDepartmentFilter === 'ALL' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
                     >
                       All Jobs
                     </button>
                     <button
                       type="button"
                       onClick={() => setMobileDepartmentFilter('Cutting')}
-                      className={`px-3 py-2 rounded-lg font-black whitespace-nowrap transition-all ${mobileDepartmentFilter === 'Cutting' ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+                      className={`px-3 py-2 rounded-lg font-black whitespace-nowrap transition-all ${mobileDepartmentFilter === 'Cutting' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
                     >
                       ✂️ Cutting ({orders.filter(o => (o.status === 'Cutting' || o.status === 'Ready')).length})
                     </button>
                     <button
                       type="button"
                       onClick={() => setMobileDepartmentFilter('Assembly')}
-                      className={`px-3 py-2 rounded-lg font-black whitespace-nowrap transition-all ${mobileDepartmentFilter === 'Assembly' ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+                      className={`px-3 py-2 rounded-lg font-black whitespace-nowrap transition-all ${mobileDepartmentFilter === 'Assembly' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
                     >
                       🧵 Assembly ({orders.filter(o => (o.status === 'Assignment' || o.status === 'Sewing')).length})
                     </button>
                     <button
                       type="button"
                       onClick={() => setMobileDepartmentFilter('QC')}
-                      className={`px-3 py-2 rounded-lg font-black whitespace-nowrap transition-all ${mobileDepartmentFilter === 'QC' ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+                      className={`px-3 py-2 rounded-lg font-black whitespace-nowrap transition-all ${mobileDepartmentFilter === 'QC' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
                     >
                       🔍 QC ({orders.filter(o => o.status === 'QC').length})
                     </button>
@@ -786,7 +930,7 @@ export default function LiveControlTower() {
                       >
                         <div>
                           <div className="flex items-center space-x-2">
-                            <span className="text-xs font-black text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">{order.orderId}</span>
+                            <span className="text-xs font-black text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">{order.orderId}</span>
                             <span className="text-[10px] uppercase font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full">
                               {order.status}
                             </span>
@@ -794,7 +938,7 @@ export default function LiveControlTower() {
                           <h4 className="font-bold text-slate-100 text-sm mt-1.5">{order.customerName}</h4>
                           <p className="text-xs text-slate-400">{order.garmentType} • {order.fabricSelection}</p>
                         </div>
-                        <span className="text-xl text-slate-500 group-hover:text-emerald-400 transition-colors">→</span>
+                        <span className="text-xl text-slate-500 group-hover:text-blue-400 transition-colors">→</span>
                       </button>
                     ))}
 
@@ -811,7 +955,7 @@ export default function LiveControlTower() {
                     <button onClick={() => setSelectedOrderForMobile(null)} className="text-xs text-slate-400 hover:text-white mb-2 block font-semibold">
                       ← Back to list
                     </button>
-                    <span className="text-xs font-black text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">{selectedOrderForMobile.orderId}</span>
+                    <span className="text-xs font-black text-blue-400 font-mono bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">{selectedOrderForMobile.orderId}</span>
                     <h3 className="text-lg font-black text-slate-100 mt-1">{selectedOrderForMobile.customerName}</h3>
                   </div>
 
@@ -819,7 +963,7 @@ export default function LiveControlTower() {
                   <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-4">
                     <div className="flex justify-between items-center">
                       <h4 className="text-xs font-black text-slate-300 tracking-wider uppercase">✂️ Cutting Metrics</h4>
-                      <span className="text-[10px] font-extrabold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Cutter: {CUTTERS[0]}</span>
+                      <span className="text-[10px] font-extrabold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">Cutter: {CUTTERS[0]}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
@@ -877,13 +1021,13 @@ export default function LiveControlTower() {
                         <button
                           key={tailor}
                           onClick={() => setSelectedTailor(tailor)}
-                          className={`p-2.5 rounded-lg text-xs font-extrabold border transition-all ${selectedTailor === tailor ? 'bg-emerald-500 border-emerald-500 text-slate-950 shadow-md' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'}`}
+                          className={`p-2.5 rounded-lg text-xs font-extrabold border transition-all ${selectedTailor === tailor ? 'bg-blue-600 border-blue-500 text-white shadow-md' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'}`}
                         >
                           {tailor}
                         </button>
                       ))}
                     </div>
-                    <button onClick={submitTailorAssignment} disabled={!selectedTailor} className="w-full bg-emerald-500 disabled:opacity-40 hover:bg-emerald-400 text-slate-950 text-xs font-black py-2.5 rounded-lg transition uppercase tracking-wider shadow-md shadow-emerald-500/20">
+                    <button onClick={submitTailorAssignment} disabled={!selectedTailor} className="w-full bg-blue-600 disabled:opacity-40 hover:bg-blue-500 text-white text-xs font-black py-2.5 rounded-lg transition uppercase tracking-wider shadow-md shadow-blue-500/20">
                       Confirm Tailor & Set to Assigned
                     </button>
                   </div>
