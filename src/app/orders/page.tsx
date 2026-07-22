@@ -104,9 +104,13 @@ export default function OrdersPage() {
                       </div>
                     </div>
                   ))}
+
+                  {/* Friendly Operational Empty State */}
                   {stageOrders.length === 0 && (
-                    <div className="h-24 flex items-center justify-center border border-dashed border-slate-800 rounded-xl text-slate-500 text-base">
-                      No orders
+                    <div className="h-32 flex flex-col items-center justify-center border border-dashed border-slate-800/80 rounded-xl text-center p-4 text-slate-500 space-y-1">
+                      <span className="text-2xl">✨</span>
+                      <span className="text-base font-medium text-slate-400">Everything smoothly set</span>
+                      <span className="text-xs text-slate-600">No jobs pending in {stage}</span>
                     </div>
                   )}
                 </div>
