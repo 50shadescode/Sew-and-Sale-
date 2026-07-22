@@ -346,6 +346,7 @@ export default function LiveControlTower() {
               src="/logo.jpg"
               alt="Sew & Sell Logo"
               fill
+              sizes="48px"
               className="object-cover"
               priority
             />
