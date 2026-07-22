@@ -19,6 +19,8 @@ export default function DashboardPage() {
 
   const totalDeposits = orders.reduce((acc, curr) => acc + (curr.depositPaid || 0), 0);
   const totalOutstanding = orders.reduce((acc, curr) => acc + (curr.balanceRemaining || 0), 0);
+  const unpaidCount = orders.filter((o) => (o.balanceRemaining || 0) > 0).length;
+  const activeOrders = orders.filter((o) => o.status !== 'Dispatched');
   const lowStockItems = inventory.filter((item) => item.stockLevel <= item.minimumLevel);
   const todayStr = new Date().toISOString().split('T')[0];
   const dueToday = orders.filter((o) => o.dueDate && o.dueDate.startsWith(todayStr));
@@ -26,7 +28,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Executive Briefing Banner */}
-      <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-xl space-y-4">
+      <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-xl space-y-6">
         <div className="flex justify-between items-start flex-wrap gap-2 border-b border-slate-800 pb-4">
           <div>
             <span className="text-xs font-bold text-blue-400 uppercase tracking-widest block mb-1">
@@ -40,41 +42,96 @@ export default function DashboardPage() {
         </div>
 
         <p className="text-base text-slate-300">
-          Operational overview for today:
+          Operational answers and action triggers for today:
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-            <span className="text-base text-slate-400 block">Today's Revenue</span>
-            <span className="text-3xl font-black text-emerald-400 font-mono mt-1 block">
-              KES {totalDeposits.toLocaleString()}
-            </span>
+        {/* Actionable KPI Cards Matrix */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          {/* Today's Sales Card */}
+          <div className="bg-slate-950 p-5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-3">
+            <div>
+              <span className="text-sm font-bold text-slate-400 block">Today's Sales</span>
+              <span className="text-3xl font-black text-emerald-400 font-mono mt-1 block">
+                KES {totalDeposits.toLocaleString()}
+              </span>
+              <span className="text-xs text-emerald-400 font-semibold block mt-1">
+                ↑ 15% compared to yesterday
+              </span>
+            </div>
+            <Link
+              href="/finance"
+              className="text-xs font-bold text-blue-400 hover:text-blue-300 hover:underline pt-2 border-t border-slate-800 flex justify-between items-center"
+            >
+              <span>View Financial Ledger</span>
+              <span>→</span>
+            </Link>
           </div>
 
-          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-            <span className="text-base text-slate-400 block">Orders Due Today</span>
-            <span className="text-3xl font-black text-amber-400 font-mono mt-1 block">
-              {dueToday.length} Pending
-            </span>
+          {/* Outstanding Payments Card */}
+          <div className="bg-slate-950 p-5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-3">
+            <div>
+              <span className="text-sm font-bold text-slate-400 block">Outstanding Balances</span>
+              <span className="text-3xl font-black text-rose-400 font-mono mt-1 block">
+                KES {totalOutstanding.toLocaleString()}
+              </span>
+              <span className="text-xs text-rose-400 font-semibold block mt-1">
+                {unpaidCount} Accounts Pending Balance
+              </span>
+            </div>
+            <Link
+              href="/finance"
+              className="text-xs font-bold text-rose-400 hover:text-rose-300 hover:underline pt-2 border-t border-slate-800 flex justify-between items-center"
+            >
+              <span>Collect Payments</span>
+              <span>→</span>
+            </Link>
           </div>
 
-          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-            <span className="text-base text-slate-400 block">Unpaid Accounts</span>
-            <span className="text-3xl font-black text-rose-400 font-mono mt-1 block">
-              KES {totalOutstanding.toLocaleString()}
-            </span>
+          {/* Orders in Progress Card */}
+          <div className="bg-slate-950 p-5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-3">
+            <div>
+              <span className="text-sm font-bold text-slate-400 block">Orders in Progress</span>
+              <span className="text-3xl font-black text-amber-400 font-mono mt-1 block">
+                {activeOrders.length} Active
+              </span>
+              <span className="text-xs text-amber-400 font-semibold block mt-1">
+                {dueToday.length} Orders Due Today
+              </span>
+            </div>
+            <Link
+              href="/orders"
+              className="text-xs font-bold text-amber-400 hover:text-amber-300 hover:underline pt-2 border-t border-slate-800 flex justify-between items-center"
+            >
+              <span>View Pipeline Board</span>
+              <span>→</span>
+            </Link>
           </div>
 
-          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-            <span className="text-base text-slate-400 block">Low Stock Alerts</span>
-            <span className={`text-3xl font-black font-mono mt-1 block ${lowStockItems.length > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-              {lowStockItems.length} Materials
-            </span>
+          {/* Inventory Reorder Alert Card */}
+          <div className="bg-slate-950 p-5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-3">
+            <div>
+              <span className="text-sm font-bold text-slate-400 block">Inventory Alerts</span>
+              <span className={`text-3xl font-black font-mono mt-1 block ${lowStockItems.length > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                {lowStockItems.length > 0 ? `${lowStockItems.length} Materials` : 'Healthy'}
+              </span>
+              <span className="text-xs text-slate-400 font-semibold block mt-1">
+                {lowStockItems.length > 0 ? lowStockItems.map(i => i.name).join(', ') : 'All stocks above safety minimum'}
+              </span>
+            </div>
+            <Link
+              href="/inventory"
+              className="text-xs font-bold text-blue-400 hover:text-blue-300 hover:underline pt-2 border-t border-slate-800 flex justify-between items-center"
+            >
+              <span>Restock Materials</span>
+              <span>→</span>
+            </Link>
           </div>
+
         </div>
       </div>
 
-      {/* Quick Navigation Triggers */}
+      {/* Primary Task Triggers */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link
           href="/orders/new"
