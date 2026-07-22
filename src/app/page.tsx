@@ -59,6 +59,9 @@ export default function LiveControlTower() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // 📱 Mobile View Quick Department Filter State
+  const [mobileDepartmentFilter, setMobileDepartmentFilter] = useState<string>('ALL');
+
   // Dynamic Stock & Inventory States
   const [fabrics, setFabrics] = useState<InventoryType[]>([]);
   const [fullInventory, setFullInventory] = useState<InventoryType[]>([]);
@@ -222,7 +225,7 @@ export default function LiveControlTower() {
     const nextStatus = STAGES[currentIndex + 1];
 
     if (nextStatus === 'Dispatched') {
-      alert(`💬 STAGE 7: DISPATCHED\nInvoice generated & simulated M-Pesa STK Push initiated for KES ${order.priceTotal} to${order.customerPhone || 'Customer'}`);
+      alert(`💬 STAGE 7: DISPATCHED\nInvoice generated & simulated M-Pesa STK Push initiated for KES ${order.priceTotal} to ${order.customerPhone || 'Customer'}`);
     }
 
     try {
@@ -319,6 +322,17 @@ export default function LiveControlTower() {
       console.error('Error assigning tailor:', err);
     }
   };
+
+  // 📱 Filter Active Mobile Orders based on Selected Department Tab
+  const activeMobileOrders = orders
+    .filter((o) => o.status !== 'Dispatched')
+    .filter((o) => {
+      if (mobileDepartmentFilter === 'ALL') return true;
+      if (mobileDepartmentFilter === 'Cutting') return o.status === 'Cutting' || o.status === 'Ready';
+      if (mobileDepartmentFilter === 'Assembly') return o.status === 'Assignment' || o.status === 'Sewing';
+      if (mobileDepartmentFilter === 'QC') return o.status === 'QC';
+      return true;
+    });
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 font-sans">
@@ -655,45 +669,81 @@ export default function LiveControlTower() {
           </div>
         )}
 
-        {/* Mobile Workshop view */}
+        {/* 📱 Workshop Floor (Mobile View with Department Quick Filters) */}
         {view === 'mobile' && (
           <div className="max-w-md mx-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 min-h-[80vh] flex flex-col justify-between">
             <div>
-              <div className="border-b border-slate-800 pb-3 mb-5">
+              <div className="border-b border-slate-800 pb-3 mb-4">
                 <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Workshop Floor view</span>
                 <h2 className="text-xl font-bold text-white mt-1">📱 Mobile Tracker Matrix</h2>
               </div>
 
               {!selectedOrderForMobile ? (
                 <div>
+                  {/* ⚡ Quick Department Filter Tabs */}
+                  <div className="mb-4 flex space-x-1 bg-slate-950 p-1 rounded-lg border border-slate-800 overflow-x-auto text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => setMobileDepartmentFilter('ALL')}
+                      className={`px-3 py-1.5 rounded-md font-extrabold whitespace-nowrap transition ${mobileDepartmentFilter === 'ALL' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'}`}
+                    >
+                      All Jobs
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMobileDepartmentFilter('Cutting')}
+                      className={`px-3 py-1.5 rounded-md font-extrabold whitespace-nowrap transition ${mobileDepartmentFilter === 'Cutting' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'}`}
+                    >
+                      ✂️ Cutting ({orders.filter(o => (o.status === 'Cutting' || o.status === 'Ready')).length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMobileDepartmentFilter('Assembly')}
+                      className={`px-3 py-1.5 rounded-md font-extrabold whitespace-nowrap transition ${mobileDepartmentFilter === 'Assembly' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'}`}
+                    >
+                      🧵 Assembly ({orders.filter(o => (o.status === 'Assignment' || o.status === 'Sewing')).length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMobileDepartmentFilter('QC')}
+                      className={`px-3 py-1.5 rounded-md font-extrabold whitespace-nowrap transition ${mobileDepartmentFilter === 'QC' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'}`}
+                    >
+                      🔍 QC ({orders.filter(o => o.status === 'QC').length})
+                    </button>
+                  </div>
+
                   <label className="block text-xs font-bold text-slate-400 mb-2">Select Active Job:</label>
-                  <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
-                    {orders
-                      .filter((o) => o.status !== 'Dispatched')
-                      .map((order) => (
-                        <button
-                          key={order._id}
-                          onClick={() => {
-                            setSelectedOrderForMobile(order);
-                            setMobileFabricUsed(order.fabricMetersUsed || 0);
-                            setMobilePatternsCut(order.patternPiecesCut || 0);
-                            setSelectedTailor(order.assignedTailor || '');
-                          }}
-                          className="w-full text-left bg-slate-850 hover:bg-slate-800 border border-slate-850 hover:border-slate-700 p-4 rounded-xl transition flex justify-between items-center"
-                        >
-                          <div>
-                            <div className="flex items-center space-x-2">
-                              <span className="text-xs font-black text-emerald-400">{order.orderId}</span>
-                              <span className="text-[10px] uppercase font-bold text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">
-                                {order.status}
-                              </span>
-                            </div>
-                            <h4 className="font-bold text-white text-sm mt-1">{order.customerName}</h4>
-                            <p className="text-xs text-slate-400">{order.garmentType} • {order.fabricSelection}</p>
+                  <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+                    {activeMobileOrders.map((order) => (
+                      <button
+                        key={order._id}
+                        onClick={() => {
+                          setSelectedOrderForMobile(order);
+                          setMobileFabricUsed(order.fabricMetersUsed || 0);
+                          setMobilePatternsCut(order.patternPiecesCut || 0);
+                          setSelectedTailor(order.assignedTailor || '');
+                        }}
+                        className="w-full text-left bg-slate-850 hover:bg-slate-800 border border-slate-850 hover:border-slate-700 p-4 rounded-xl transition flex justify-between items-center"
+                      >
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-xs font-black text-emerald-400">{order.orderId}</span>
+                            <span className="text-[10px] uppercase font-bold text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">
+                              {order.status}
+                            </span>
                           </div>
-                          <span className="text-xl text-slate-500">→</span>
-                        </button>
-                      ))}
+                          <h4 className="font-bold text-white text-sm mt-1">{order.customerName}</h4>
+                          <p className="text-xs text-slate-400">{order.garmentType} • {order.fabricSelection}</p>
+                        </div>
+                        <span className="text-xl text-slate-500">→</span>
+                      </button>
+                    ))}
+
+                    {activeMobileOrders.length === 0 && (
+                      <div className="p-8 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-xl">
+                        No active jobs in this department filter.
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
